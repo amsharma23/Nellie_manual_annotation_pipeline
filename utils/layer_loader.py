@@ -28,9 +28,9 @@ def load_image_and_skeleton(nellie_output_path):
         tif_files = os.listdir(nellie_output_path)
         
         # Find raw image file (channel 0)
-        raw_files = [f for f in tif_files if f.endswith('-ch0-ome.ome.tif')]
+        raw_files = [f for f in tif_files if f.endswith('-ch0.ome.tif')]
         if not raw_files:
-            show_error("No raw image file found in the output directory")
+            show_error("No raw image file found in the output directory: " + nellie_output_path)
             return None, None, [], [], []
             
         raw_file = raw_files[0]

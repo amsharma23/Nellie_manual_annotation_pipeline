@@ -341,13 +341,15 @@ class FileLoaderWidget(QWidget):
                     subdirs = natsorted(subdirs)
                     for subdir in subdirs:
                         subdir_path = os.path.join(app_state.loaded_folder, subdir)
-                        check_nellie_path = os.path.exists(os.path.join(subdir_path , 'nellie_output'))
+                        check_nellie_path = os.path.exists(os.path.join(subdir_path , 'nellie_output/nellie_necessities'))
                         tif_files = [f for f in os.listdir(subdir_path) if (f.endswith('.ome.tif') or f.endswith('.ome.tiff'))]
                         
                         if not check_nellie_path :
                             self.log_status(f"No results to view for {subdir_path} Please run processing first.")
                             continue
-                        
+                        elif check_nellie_path:
+                            self.log_status(f"Results to view for {subdir_path} are available!")
+
                         for file in tif_files:
                             if file.endswith('.ome.tif'):
                                 # Extract base name (usually contains time point info)
@@ -497,8 +499,8 @@ class FileLoaderWidget(QWidget):
             if int(subdir)>0:
                 
                 subdir_path = os.path.join(app_state.loaded_folder, subdir)
-                check_nellie_path = os.path.exists(os.path.join(subdir_path, 'nellie_output'))
-                nellie_op_path = os.path.join(subdir_path , 'nellie_output')
+                check_nellie_path = os.path.exists(os.path.join(subdir_path, 'nellie_output/nellie_necessities'))
+                nellie_op_path = os.path.join(subdir_path , 'nellie_output/nellie_necessities')
                 
             
                         
