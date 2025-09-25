@@ -168,6 +168,7 @@ class FileLoaderWidget(QWidget):
                 directory_list = [item for item in os.listdir(file_path) if (os.path.isdir(os.path.join(file_path,item)))]
                 if 'nellie_output' in directory_list:
                     app_state.nellie_output_path = os.path.join(file_path, 'nellie_output')
+                    app_state.nellie_output_path = os.path.join(app_state.nellie_output_path, 'nellie_necessities')
                     self.view_btn.setEnabled(True)
                     self.log_status(f'{file_path} has a processed output already!')
             
@@ -180,8 +181,8 @@ class FileLoaderWidget(QWidget):
                     subdirs = natsorted(subdirs)
                     for subdir in subdirs:
                         subdir_path = os.path.join(app_state.loaded_folder, subdir)
-                        check_nellie_path = os.path.exists(os.path.join(subdir_path,'nellie_output'))
-                    
+                        check_nellie_path = os.path.exists(os.path.join(subdir_path,'nellie_output/nellie_necessities'))
+                        
                         if check_nellie_path :
                             self.view_btn.setEnabled(True)
                             self.log_status(f"Results to view for {subdir_path} are already available!")
@@ -199,8 +200,10 @@ class FileLoaderWidget(QWidget):
         
             
             if app_state.folder_type == 'Single TIFF':
+                
                 # Find TIFF files in the directory
                 app_state.nellie_output_path = os.path.join(app_state.loaded_folder, 'nellie_output')
+                app_state.nellie_output_path = os.path.join(app_state.nellie_output_path, 'nellie_necessities')
                 tif_files = [f for f in os.listdir(app_state.loaded_folder) if (f.endswith('.ome.tif') or f.endswith('.ome.tiff'))]
                 
                 if not tif_files:
@@ -247,6 +250,7 @@ class FileLoaderWidget(QWidget):
                             im_path = os.path.join(subdir_path, input_file)
                             time_points.append((subdir, im_path))
                             self.log_status(f"Added time point from {subdir}: {input_file}")
+                
                 time_points = natsorted(time_points)
                 # Process each time point
                 if not time_points:
@@ -261,7 +265,7 @@ class FileLoaderWidget(QWidget):
                     # Run Nellie processing with time point in the output name
                     im_info = run_nellie_processing(
                         im_path, 
-                        num_t=i,  # Pass time point index
+                        num_t=1,  # Pass time point index
                         remove_edges=self.remove_edges_check.isChecked(),
                         ch=self.channel_spin.value()
                     )

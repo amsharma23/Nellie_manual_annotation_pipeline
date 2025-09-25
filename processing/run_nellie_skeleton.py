@@ -7,7 +7,8 @@ Created on Mon Mar 10 17:39:25 2025
 """
 # Check if Nellie is available
 try:
-    from nellie.im_info.im_info import ImInfo
+    from nellie.im_info.verifier import ImInfo
+    from nellie.im_info.verifier import FileInfo
     from nellie.segmentation.filtering import Filter
     from nellie.segmentation.labelling import Label
     from nellie.segmentation.networking import Network
@@ -15,6 +16,8 @@ try:
 except ImportError:
     NELLIE_AVAILABLE = False
 from napari.utils.notifications import show_info, show_warning, show_error
+import os
+import logging
 
 def run_nellie_processing(im_path, num_t=None, remove_edges=False, ch=0):
     
@@ -34,30 +37,76 @@ def run_nellie_processing(im_path, num_t=None, remove_edges=False, ch=0):
         return None
     
     try:
-        
-        # Initialize ImInfo with the image
-        im_info = ImInfo(im_path, ch=ch)
-        
+        # Initialize FileInfo, load metadata and set dimension resolutions
+        file_info = FileInfo(im_path)
+        # read file metadata and populate axes/shape/dim_res
+        file_info.find_metadata()
+        file_info.load_metadata()
+
         # Set dimension sizes (adjust these values based on your imaging parameters)
-        im_info.dim_sizes = {'Z': 0.30, 'Y': 0.17, 'X': 0.17, 'T': 0}
-        #show_info(f"Dimension sizes set: {im_info.dim_sizes}")
-        
+        # use change_dim_res to ensure FileInfo internal validation runs
+        file_info.change_dim_res('Z', 0.23)
+        file_info.change_dim_res('Y', 0.073)
+        file_info.change_dim_res('X', 0.073)
+        file_info.change_dim_res('T', 0)
+
+        # Ensure selected temporal range does not exceed actual frames
+        try:
+            if file_info.axes and 'T' in file_info.axes:
+                t_len = file_info.shape[file_info.axes.index('T')]
+                # set temporal range to available frames
+                file_info.select_temporal_range(0, max(0, t_len - 1))
+            else:
+                # no T axis in original file -> single frame; set temporal range to (0,0)
+                file_info.select_temporal_range(0, 0)
+        except Exception:
+            # if anything goes wrong here, just continue and let Nellie handle
+            pass
+
+        # Now create ImInfo from the populated FileInfo
+        im_info = ImInfo(file_info)
+        show_info("Output directory is "+str(file_info.output_dir))
         # Filtering step
-        preprocessing = Filter(im_info, num_t, remove_edges=remove_edges)
-        preprocessing.run()
-        #show_info("Filtering complete")
+        try:
+            preprocessing = Filter(im_info, num_t, remove_edges=remove_edges)
+            preprocessing.run()
+            #show_info("Filtering complete")
+            logging.info('Filtering complete')
+        except Exception as e:
+            logging.exception('Filtering step failed')
+            raise
         
         # Segmentation step
-        segmenting = Label(im_info, num_t)
-        segmenting.run()
-        #show_info("Segmentation complete")
+        try:
+            segmenting = Label(im_info, num_t)
+            segmenting.run()
+            #show_info("Segmentation complete")
+            logging.info('Segmentation complete')
+        except Exception as e:
+            logging.exception('Segmentation step failed')
+            raise
         
         # Network analysis
-        networking = Network(im_info, num_t)
-        networking.run()
-        show_info("Networking complete")
+        try:
+            networking = Network(im_info, num_t)
+            networking.run()
+            logging.info('Networking complete')
+        except Exception as e:
+            logging.exception('Networking step failed')
+            raise
         
-        return im_info
+        # Collect which pipeline outputs were created
+        created = []
+        for k, path in im_info.pipeline_paths.items():
+            if os.path.exists(path):
+                created.append(path)
+
+        # also include the main ome path
+        if os.path.exists(im_info.im_path):
+            created.append(im_info.im_path)
+
+        show_info("Networking complete")
+        return im_info, created
     
     except Exception as e:
         show_error(f"Error in Nellie processing: {str(e)}")

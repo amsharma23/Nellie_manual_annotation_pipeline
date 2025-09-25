@@ -14,7 +14,7 @@ from gui.gui_layout_and_process import FileLoaderWidget
 
 # Check if Nellie is available
 try:
-    from nellie.im_info.im_info import ImInfo
+    from nellie.im_info.verifier import ImInfo
     NELLIE_AVAILABLE = True
 except ImportError:
     NELLIE_AVAILABLE = False
