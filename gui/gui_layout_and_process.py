@@ -6,23 +6,18 @@ Created on Mon Mar 10 17:47:10 2025
 @author: amansharma
 """
 from qtpy.QtWidgets import (
-    QCheckBox, QComboBox, QFormLayout, QGroupBox, 
-QLabel, QPushButton, QSpinBox, QTextEdit, 
-QVBoxLayout, QHBoxLayout, QWidget, QFileDialog)
+    QCheckBox, QComboBox, QFormLayout, QGroupBox,
+    QLabel, QPushButton, QSpinBox, QTextEdit,
+    QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QScrollArea,
+)
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QLabel, QScrollArea
-from natsort import natsorted
 from app_state import app_state
-import os
-from utils.adjacency_reader import adjacency_to_extracted
-from .update_display_mod import update_image
 from .status import log
+from .update_display_mod import update_image
 from .browse import browse_folder
 from .process_image import process_clicked
 from .view_images import view_clicked
-from .visualize_graph import make_multigraph_image
 from .network_gen import network_click
-from .visualize_graph import load_graph_on_viewer
 from .view_graph import view_graph
 
 class FileLoaderWidget(QWidget):
@@ -201,9 +196,7 @@ class FileLoaderWidget(QWidget):
 
     def log_status(self, message):
         """Add a message to the status log."""
-        current_text = self.status_text.toPlainText()
-        self.status_text.setPlainText(f"{current_text}\n{message}" if current_text else message)
-        self.status_text.verticalScrollBar().setValue(self.status_text.verticalScrollBar().maximum())
+        log(self.status_text, message)
         
     def on_browse_clicked(self):
         """Handle browse button click to select input file or folder."""
