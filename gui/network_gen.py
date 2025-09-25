@@ -44,15 +44,15 @@ def network_click(widget):
                     for subdir in subdirs:
 
                         subdir_path = os.path.join(app_state.loaded_folder, subdir)
-                        tif_files = os.listdir(os.path.join(subdir_path,'nellie_output'))
+                        tif_files = os.listdir(os.path.join(subdir_path,'nellie_output/nellie_necessities'))
                         pixel_class_files = [f for f in tif_files if (f.endswith('im_pixel_class.ome.tif') or f.endswith('im_pixel_class.ome.tiff'))]       
 
                         if not pixel_class_files:
                             widget.log_status(f"No pixel classification file found for {subdir}.")
                             return
-                
-                        pixel_class_path = os.path.join(os.path.join(subdir_path,'nellie_output'), pixel_class_files[0])
-            
+
+                        pixel_class_path = os.path.join(os.path.join(subdir_path,'nellie_output/nellie_necessities'), pixel_class_files[0])
+
                         # Generate network
                         widget.log_status(f"Generating network representation for {pixel_class_path}...")
                         adjacency_path, edge_path = get_network(pixel_class_path)
