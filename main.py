@@ -7,9 +7,7 @@ Created on Mon Mar 10 16:54:53 2025
 """
 import napari
 from napari.utils.notifications import show_warning
-
-# Import from local modules
-from app_state import app_state
+from gui.viewer import load_viewer
 
 # Check if Nellie is available
 try:
@@ -21,8 +19,7 @@ except ImportError:
 
 def main():
     """Main function to start the application."""
-    viewer = napari.Viewer(title="Nellie Network Analysis")
-    
+    viewer = load_viewer()
     # Check for Nellie library
     if not NELLIE_AVAILABLE:
         show_warning("Nellie library not found. Please install it for full functionality.")
