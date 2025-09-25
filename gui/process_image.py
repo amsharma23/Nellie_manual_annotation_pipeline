@@ -18,7 +18,7 @@ def process_clicked(widget):
         try:        
             if app_state.folder_type == 'Single TIFF':
                 # Find TIFF files in the directory
-                app_state.nellie_output_path = os.path.join(app_state.loaded_folder, 'nellie_output')
+                app_state.nellie_output_path = os.path.join(app_state.loaded_folder, 'nellie_output/nellie_necessities')
                 tif_files = [f for f in os.listdir(app_state.loaded_folder) if (f.endswith('.ome.tif') or f.endswith('.ome.tiff'))]
                 
                 if not tif_files:

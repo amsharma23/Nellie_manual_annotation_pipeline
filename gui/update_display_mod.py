@@ -181,8 +181,8 @@ def update_image(widget, viewer, current, index):
         
         if int(subdir) > 0:
             subdir_path = os.path.join(app_state.loaded_folder, subdir)
-            check_nellie_path = os.path.exists(os.path.join(subdir_path, 'nellie_output'))
-            nellie_op_path = os.path.join(subdir_path, 'nellie_output')
+            check_nellie_path = os.path.exists(os.path.join(subdir_path, 'nellie_output/nellie_necessities'))
+            nellie_op_path = os.path.join(subdir_path, 'nellie_output/nellie_necessities')
             app_state.nellie_output_path = nellie_op_path
         
             if check_nellie_path:

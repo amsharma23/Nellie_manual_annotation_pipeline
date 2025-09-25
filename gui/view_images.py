@@ -183,8 +183,8 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                     for subdir in subdirs:
                         
                         subdir_path = os.path.join(app_state.loaded_folder, subdir)
-                        check_nellie_path = os.path.exists(os.path.join(subdir_path , 'nellie_output'))
-                        tif_files = [f for f in os.listdir(os.path.join(subdir_path,'nellie_output')) if (f.endswith('raw.ome.tif') or f.endswith('raw.ome.tiff'))]
+                        check_nellie_path = os.path.exists(os.path.join(subdir_path , 'nellie_output/nellie_necessities'))
+                        tif_files = [f for f in os.listdir(os.path.join(subdir_path,'nellie_output/nellie_necessities')) if (f.endswith('-ch0.ome.tif') or f.endswith('raw.ome.tiff'))]
                         
                         if not check_nellie_path :
                             widget.log_status(f"No results to view for {subdir_path} Please run processing first.")
