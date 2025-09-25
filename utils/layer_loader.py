@@ -41,6 +41,8 @@ def load_image_and_skeleton(nellie_output_path):
         if not skel_files:
             show_error("No skeleton file found in the output directory")
             return None, None, [], [], []
+        else:
+            app_state.nellie_output_path = nellie_output_path
             
         skel_file = skel_files[0]
         

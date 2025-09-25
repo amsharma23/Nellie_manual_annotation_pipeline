@@ -186,7 +186,8 @@ class FileLoaderWidget(QWidget):
                         if check_nellie_path :
                             self.view_btn.setEnabled(True)
                             self.log_status(f"Results to view for {subdir_path} are already available!")
-            
+                else:
+                    self.log_status(f"No time point folders found in {app_state.loaded_folder}. Please ensure the folder structure is correct.")
             
     def on_process_clicked(self):
         """Handle process button click to run Nellie processing."""
@@ -348,10 +349,11 @@ class FileLoaderWidget(QWidget):
                             self.log_status(f"No results to view for {subdir_path} Please run processing first.")
                             continue
                         elif check_nellie_path:
+                            
                             self.log_status(f"Results to view for {subdir_path} are available!")
 
                         for file in tif_files:
-                            if file.endswith('.ome.tif'):
+                            if file.endswith('.ome.tif') or file.endswith('.ome.tiff'):
                                 # Extract base name (usually contains time point info)
                                 base_parts = file.split('.')
                                 if len(base_parts) > 1:
@@ -384,9 +386,10 @@ class FileLoaderWidget(QWidget):
                         self.update_displayed_image(0)
                     
                     else:
+                        nellie_op_path = os.path.join(subdir_path[0] , 'nellie_output/nellie_necessities')
                         # Fallback to original method if no image sets were found
-                        raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
-                        
+                        raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(nellie_op_path)
+
                         if raw_im is not None and skel_im is not None:
                             # Add layers to viewer
                             app_state.raw_layer = self.viewer.add_image(
@@ -422,7 +425,7 @@ class FileLoaderWidget(QWidget):
     def on_network_clicked(self):
         """Handle network button click to generate network representation."""
         if not app_state.nellie_output_path:
-            self.log_status("No data to analyze. Please run processing and view results first.")
+            self.log_status("No data to analyze in Nellie output path. Please run processing and view results first.")
             return
             
         try:
@@ -471,7 +474,6 @@ class FileLoaderWidget(QWidget):
         self.image_label.setText(f"Current Image: {value}/{self.image_slider.maximum()}")
         self.update_displayed_image(value - 1)  # Convert to 0-based index
         
-
     def update_displayed_image(self, index):
         """Update the displayed image based on slider index."""
         current = self.image_slider.value()
