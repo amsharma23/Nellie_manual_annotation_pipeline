@@ -8,6 +8,7 @@ Created on Wed Sep 25 2025
 Event detection for fission/fusion dynamics in time series network data.
 """
 
+import os
 import pandas as pd
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -35,7 +36,7 @@ def calculate_degree_from_adjacencies(adj_str):
     return len(adj_list)
 
 
-def match_nodes_spatially(df_t1, df_t2, distance_threshold=5.0):
+def match_nodes_spatially(df_t1, df_t2, distance_threshold=5.0, z_scale: float = (0.23/0.077)):
     """
     Match nodes between two timepoints based on spatial proximity.
 
@@ -54,8 +55,17 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=5.0):
     pos1 = df_t1[['pos_x', 'pos_y', 'pos_z']].values
     pos2 = df_t2[['pos_x', 'pos_y', 'pos_z']].values
 
-    # Calculate distance matrix
-    distances = cdist(pos1, pos2)
+    # Apply z scaling to account for non-isotropic space
+    # We create scaled copies so original DataFrames remain unchanged
+    pos1_scaled = pos1.copy()
+    pos2_scaled = pos2.copy()
+    if pos1_scaled.shape[1] >= 3:
+        pos1_scaled[:, 2] = pos1_scaled[:, 2] * z_scale
+    if pos2_scaled.shape[1] >= 3:
+        pos2_scaled[:, 2] = pos2_scaled[:, 2] * z_scale
+
+    # Calculate distance matrix using scaled z
+    distances = cdist(pos1_scaled, pos2_scaled)
 
     # Find best matches
     matches = {}
@@ -76,7 +86,7 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=5.0):
     return matches
 
 
-def classify_network_events(df_t1, df_t2, distance_threshold=5.0):
+def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float = 1.0):
     """
     Classify network events into 6 specific categories based on degree 1 and 3 nodes.
 
@@ -107,8 +117,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0):
     df_t1 = df_t1[df_t1['actual_degree'].isin([1, 3])]
     df_t2 = df_t2[df_t2['actual_degree'].isin([1, 3])]
 
-    # Match nodes spatially
-    matches = match_nodes_spatially(df_t1, df_t2, distance_threshold)
+    # Match nodes spatially (propagate z scaling)
+    matches = match_nodes_spatially(df_t1, df_t2, distance_threshold, z_scale)
 
     events = {
         'tip_edge_fusion': [],
@@ -165,7 +175,14 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0):
             pos1 = [df_t1.iloc[idx1]['pos_x'], df_t1.iloc[idx1]['pos_y'], df_t1.iloc[idx1]['pos_z']]
             pos2 = [df_t1.iloc[idx2]['pos_x'], df_t1.iloc[idx2]['pos_y'], df_t1.iloc[idx2]['pos_z']]
 
-            distance = np.linalg.norm(np.array(pos1) - np.array(pos2))
+            # Account for z scaling when computing Euclidean distance
+            p1 = np.array(pos1, dtype=float)
+            p2 = np.array(pos2, dtype=float)
+            if p1.size >= 3:
+                p1[2] = p1[2] * z_scale
+            if p2.size >= 3:
+                p2[2] = p2[2] * z_scale
+            distance = np.linalg.norm(p1 - p2)
             if distance <= distance_threshold * 2:  # Allow larger threshold for fusion
                 events['tip_tip_fusion'].append({
                     'tip1_position': pos1,
@@ -181,7 +198,14 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0):
             pos1 = [df_t2.iloc[idx1]['pos_x'], df_t2.iloc[idx1]['pos_y'], df_t2.iloc[idx1]['pos_z']]
             pos2 = [df_t2.iloc[idx2]['pos_x'], df_t2.iloc[idx2]['pos_y'], df_t2.iloc[idx2]['pos_z']]
 
-            distance = np.linalg.norm(np.array(pos1) - np.array(pos2))
+            # Account for z scaling when computing Euclidean distance
+            p1 = np.array(pos1, dtype=float)
+            p2 = np.array(pos2, dtype=float)
+            if p1.size >= 3:
+                p1[2] = p1[2] * z_scale
+            if p2.size >= 3:
+                p2[2] = p2[2] * z_scale
+            distance = np.linalg.norm(p1 - p2)
             if distance <= distance_threshold * 2:  # Allow larger threshold for fission
                 events['tip_tip_fission'].append({
                     'tip1_position': pos1,
@@ -197,7 +221,14 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0):
             tip_pos = [df_t2.iloc[tip_idx]['pos_x'], df_t2.iloc[tip_idx]['pos_y'], df_t2.iloc[tip_idx]['pos_z']]
             junction_pos = [df_t2.iloc[junction_idx]['pos_x'], df_t2.iloc[junction_idx]['pos_y'], df_t2.iloc[junction_idx]['pos_z']]
 
-            distance = np.linalg.norm(np.array(tip_pos) - np.array(junction_pos))
+            # Account for z scaling when computing Euclidean distance
+            p1 = np.array(tip_pos, dtype=float)
+            p2 = np.array(junction_pos, dtype=float)
+            if p1.size >= 3:
+                p1[2] = p1[2] * z_scale
+            if p2.size >= 3:
+                p2[2] = p2[2] * z_scale
+            distance = np.linalg.norm(p1 - p2)
             if distance <= distance_threshold:
                 events['extrusion'].append({
                     'tip_position': tip_pos,
@@ -213,7 +244,14 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0):
             tip_pos = [df_t1.iloc[tip_idx]['pos_x'], df_t1.iloc[tip_idx]['pos_y'], df_t1.iloc[tip_idx]['pos_z']]
             junction_pos = [df_t1.iloc[junction_idx]['pos_x'], df_t1.iloc[junction_idx]['pos_y'], df_t1.iloc[junction_idx]['pos_z']]
 
-            distance = np.linalg.norm(np.array(tip_pos) - np.array(junction_pos))
+            # Account for z scaling when computing Euclidean distance
+            p1 = np.array(tip_pos, dtype=float)
+            p2 = np.array(junction_pos, dtype=float)
+            if p1.size >= 3:
+                p1[2] = p1[2] * z_scale
+            if p2.size >= 3:
+                p2[2] = p2[2] * z_scale
+            distance = np.linalg.norm(p1 - p2)
             if distance <= distance_threshold:
                 events['retraction'].append({
                     'tip_position': tip_pos,
@@ -400,7 +438,6 @@ if __name__ == "__main__":
 
         print("Analyzing events using 6-category classification...")
         events = analyze_timeseries_events(df)
-
         print("\n=== EVENT DETECTION SUMMARY ===")
         print("Based on degree 1 (tips) and degree 3 (junctions) nodes only")
         print()

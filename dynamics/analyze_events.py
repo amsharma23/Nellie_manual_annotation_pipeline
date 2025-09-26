@@ -35,44 +35,69 @@ def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None
     print(f"Time points: {sorted(df['time_point'].unique())}")
 
     # Analyze events
-    print("\nAnalyzing fission/fusion events...")
+    print("\nAnalyzing network dynamics events using 6-category classification...")
     events = analyze_timeseries_events(df, distance_threshold)
 
     # Print detailed results
     print("\n" + "="*50)
-    print("FISSION/FUSION EVENT ANALYSIS RESULTS")
+    print("NETWORK DYNAMICS EVENT ANALYSIS RESULTS")
+    print("6-Category Classification (Degree 1 & 3 Nodes Only)")
     print("="*50)
 
     stats = events['summary_statistics']
     print(f"\nSUMMARY STATISTICS:")
-    print(f"  Tip-to-Junction events (fusion): {stats['total_tip_to_junction']}")
-    print(f"  Junction-to-Tip events (fission): {stats['total_junction_to_tip']}")
-    print(f"  Junction breakage events: {stats['total_junction_breakage']}")
-    print(f"  Node appearances (extrusion): {stats['total_appeared_nodes']}")
-    print(f"  Node disappearances (retraction): {stats['total_disappeared_nodes']}")
-    print(f"  Component fusions: {stats['total_component_fusions']}")
-    print(f"  Component fissions: {stats['total_component_fissions']}")
+    print(f"  1. Tip-edge fusion: {stats['total_tip_edge_fusion']}")
+    print(f"  2. Junction breakage: {stats['total_junction_breakage']}")
+    print(f"  3. Tip-tip fusion: {stats['total_tip_tip_fusion']}")
+    print(f"  4. Tip-tip fission: {stats['total_tip_tip_fission']}")
+    print(f"  5. Extrusion: {stats['total_extrusion']}")
+    print(f"  6. Retraction: {stats['total_retraction']}")
+
+    total_events = sum(stats.values())
+    print(f"\nTotal events detected: {total_events}")
 
     # Show some example events
-    if events['tip_to_junction_events']:
-        print(f"\nExample TIP-TO-JUNCTION events:")
-        for i, event in enumerate(events['tip_to_junction_events'][:3]):  # Show first 3
+    if events['tip_edge_fusion_events']:
+        print(f"\nExample TIP-EDGE FUSION events:")
+        for i, event in enumerate(events['tip_edge_fusion_events'][:3]):  # Show first 3
             print(f"  Event {i+1}: {event['timepoint_1']} → {event['timepoint_2']}")
             print(f"    Position: {event['position_t1']} → {event['position_t2']}")
-            print(f"    Degree change: +{event['degree_change']}")
+            print(f"    Degree change: {event['degree_t1']} → {event['degree_t2']}")
 
-    if events['junction_to_tip_events']:
-        print(f"\nExample JUNCTION-TO-TIP events:")
-        for i, event in enumerate(events['junction_to_tip_events'][:3]):  # Show first 3
+    if events['junction_breakage_events']:
+        print(f"\nExample JUNCTION BREAKAGE events:")
+        for i, event in enumerate(events['junction_breakage_events'][:3]):  # Show first 3
             print(f"  Event {i+1}: {event['timepoint_1']} → {event['timepoint_2']}")
             print(f"    Position: {event['position_t1']} → {event['position_t2']}")
-            print(f"    Degree change: {event['degree_change']}")
+            print(f"    Degree change: {event['degree_t1']} → {event['degree_t2']}")
 
-    if events['node_appearance_events']:
-        print(f"\nExample NODE APPEARANCE events:")
-        for i, event in enumerate(events['node_appearance_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: New node at timepoint {event['timepoint']}")
-            print(f"    Position: {event['position']}, Degree: {event['degree']}")
+    if events['tip_tip_fusion_events']:
+        print(f"\nExample TIP-TIP FUSION events:")
+        for i, event in enumerate(events['tip_tip_fusion_events'][:3]):  # Show first 3
+            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
+            print(f"    Tip positions: {event['tip1_position']} & {event['tip2_position']}")
+            print(f"    Distance: {event['distance']:.2f}")
+
+    if events['tip_tip_fission_events']:
+        print(f"\nExample TIP-TIP FISSION events:")
+        for i, event in enumerate(events['tip_tip_fission_events'][:3]):  # Show first 3
+            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
+            print(f"    Tip positions: {event['tip1_position']} & {event['tip2_position']}")
+            print(f"    Distance: {event['distance']:.2f}")
+
+    if events['extrusion_events']:
+        print(f"\nExample EXTRUSION events:")
+        for i, event in enumerate(events['extrusion_events'][:3]):  # Show first 3
+            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
+            print(f"    Tip: {event['tip_position']}, Junction: {event['junction_position']}")
+            print(f"    Distance: {event['distance']:.2f}")
+
+    if events['retraction_events']:
+        print(f"\nExample RETRACTION events:")
+        for i, event in enumerate(events['retraction_events'][:3]):  # Show first 3
+            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
+            print(f"    Tip: {event['tip_position']}, Junction: {event['junction_position']}")
+            print(f"    Distance: {event['distance']:.2f}")
 
     # Save results if output folder specified
     if output_folder:
@@ -82,26 +107,30 @@ def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None
         summary_df = pd.DataFrame([stats])
         summary_df.to_csv(os.path.join(output_folder, 'event_summary.csv'), index=False)
 
-        # Save detailed events
-        if events['tip_to_junction_events']:
-            tj_df = pd.DataFrame(events['tip_to_junction_events'])
-            tj_df.to_csv(os.path.join(output_folder, 'tip_to_junction_events.csv'), index=False)
-
-        if events['junction_to_tip_events']:
-            jt_df = pd.DataFrame(events['junction_to_tip_events'])
-            jt_df.to_csv(os.path.join(output_folder, 'junction_to_tip_events.csv'), index=False)
+        # Save detailed events for each category
+        if events['tip_edge_fusion_events']:
+            tef_df = pd.DataFrame(events['tip_edge_fusion_events'])
+            tef_df.to_csv(os.path.join(output_folder, 'tip_edge_fusion_events.csv'), index=False)
 
         if events['junction_breakage_events']:
             jb_df = pd.DataFrame(events['junction_breakage_events'])
             jb_df.to_csv(os.path.join(output_folder, 'junction_breakage_events.csv'), index=False)
 
-        if events['node_appearance_events']:
-            na_df = pd.DataFrame(events['node_appearance_events'])
-            na_df.to_csv(os.path.join(output_folder, 'node_appearance_events.csv'), index=False)
+        if events['tip_tip_fusion_events']:
+            ttf_df = pd.DataFrame(events['tip_tip_fusion_events'])
+            ttf_df.to_csv(os.path.join(output_folder, 'tip_tip_fusion_events.csv'), index=False)
 
-        if events['node_disappearance_events']:
-            nd_df = pd.DataFrame(events['node_disappearance_events'])
-            nd_df.to_csv(os.path.join(output_folder, 'node_disappearance_events.csv'), index=False)
+        if events['tip_tip_fission_events']:
+            ttfi_df = pd.DataFrame(events['tip_tip_fission_events'])
+            ttfi_df.to_csv(os.path.join(output_folder, 'tip_tip_fission_events.csv'), index=False)
+
+        if events['extrusion_events']:
+            ext_df = pd.DataFrame(events['extrusion_events'])
+            ext_df.to_csv(os.path.join(output_folder, 'extrusion_events.csv'), index=False)
+
+        if events['retraction_events']:
+            ret_df = pd.DataFrame(events['retraction_events'])
+            ret_df.to_csv(os.path.join(output_folder, 'retraction_events.csv'), index=False)
 
         print(f"\nResults saved to: {output_folder}")
 
