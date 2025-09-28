@@ -33,7 +33,7 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
             directory_list = [item for item in os.listdir(file_path) if (os.path.isdir(os.path.join(file_path,item)))]
             
             if 'nellie_output' in directory_list:
-                app_state.nellie_output_path = os.path.join(file_path, 'nellie_output')
+                app_state.nellie_output_path = os.path.join(file_path, 'nellie_output/nellie_necessities')
                 view_btn.setEnabled(True)
                 widget.log_status( f'{file_path} has a processed output already!')
         
@@ -56,7 +56,7 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
                         
                         view_btn.setEnabled(True)
                         widget.log_status(f"Results to view for {subdir_path} are already available!")
-                        nellie_path = os.path.join(subdir_path,'nellie_output')
+                        nellie_path = os.path.join(subdir_path,'nellie_output/nellie_necessities')
                         nellie_op_files = os.listdir(nellie_path)
                         check_skel = False
                         check_extracted = False
