@@ -26,7 +26,7 @@ def get_edge_colours(mask_path,extracted_path,op_path):
 
     G = nx.MultiGraph()
     ext_df = pd.read_csv(extracted_path)
-    nodes_id = ext_df['Node ID'].tolist()
+    nodes_id = ext_df['node'].tolist()
     pos = ext_df['Position(ZXY)'].tolist()
     mask = imread(mask_path)
     print(np.shape(mask))

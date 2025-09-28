@@ -18,7 +18,7 @@ def highlight(viewer):
     app_state.selected_node_position = pos    
     
     #Find connected nodes if any
-    node_ids = nd_pdf['Node ID'].tolist()
+    node_ids = nd_pdf['node'].tolist()
     node_positions = nd_pdf['Position(ZXY)'].tolist()
 
     ind_selected = [stn for stn,st in enumerate(list(node_positions)) if (get_float_pos_comma(st) == pos).all()][0]

@@ -48,7 +48,7 @@ def make_multigraph_image(widget,extracted_data_path,base_name,scale_factor=1.0)
         
         # Add all nodes with their positions (helpful for layout)
         for _, row in ext_data.iterrows():
-            G.add_node(row['Node ID'], 
+            G.add_node(row['node'], 
                     pos_x=get_float_pos_comma(row['Position(ZXY)'])[1], 
                     pos_y=get_float_pos_comma(row['Position(ZXY)'])[2], 
                     pos_z=get_float_pos_comma(row['Position(ZXY)'])[0],
@@ -57,7 +57,7 @@ def make_multigraph_image(widget,extracted_data_path,base_name,scale_factor=1.0)
         # Add edges and track multiplicity
         edge_count = {}  # This should be a dictionary, not an int
         for _, row in ext_data.iterrows():
-            node_id = row['Node ID']
+            node_id = row['node']
             adj_list = get_float_pos_comma(row['Neighbour ID'])
             edge_count_temp = {}
             for neighbor in adj_list:

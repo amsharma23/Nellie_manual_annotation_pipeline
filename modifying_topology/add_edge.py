@@ -12,7 +12,7 @@ def join(viewer,node_ind_0=None,node_ind_1=None,from_remove=False):
     #Find connected nodes if any
     node_positions = nd_pdf['Position(ZXY)'].tolist()
     node_positions_fl = [get_float_pos_comma(st) for st in node_positions]
-    nodes_extracted = nd_pdf['Node ID'].tolist()
+    nodes_extracted = nd_pdf['node'].tolist()
     node_ids = [int(st) for st in nodes_extracted]
     max_node_id = max(node_ids)
     check_ind_0 = False
@@ -74,7 +74,7 @@ def join(viewer,node_ind_0=None,node_ind_1=None,from_remove=False):
         else:
             insert_loc = insert_loc+1
         
-        nd_pdf.loc[insert_loc,'Node ID'] = max_node_id+1
+        nd_pdf.loc[insert_loc,'node'] = max_node_id+1
         nd_pdf.loc[insert_loc,'Degree of Node'] = 1
         nd_pdf.loc[insert_loc,'Position(ZXY)'] = str(pos_0)
         nd_pdf.loc[insert_loc,'Neighbour ID'] = [node_id_1]
@@ -100,7 +100,7 @@ def join(viewer,node_ind_0=None,node_ind_1=None,from_remove=False):
         else:
             insert_loc = insert_loc+1
         
-        nd_pdf.loc[insert_loc,'Node ID'] = max_node_id+1
+        nd_pdf.loc[insert_loc,'node'] = max_node_id+1
         nd_pdf.loc[insert_loc,'Degree of Node'] = 1
         nd_pdf.loc[insert_loc,'Position(ZXY)'] = str(pos_1)
         nd_pdf.loc[insert_loc,'Neighbour ID'] = [node_id_0]
@@ -120,12 +120,12 @@ def join(viewer,node_ind_0=None,node_ind_1=None,from_remove=False):
         else:
             insert_loc = insert_loc+1
         
-        nd_pdf.loc[insert_loc,'Node ID'] = max_node_id+1
+        nd_pdf.loc[insert_loc,'node'] = max_node_id+1
         nd_pdf.loc[insert_loc,'Degree of Node'] = 1
         nd_pdf.loc[insert_loc,'Position(ZXY)'] = str(pos_0)
         nd_pdf.loc[insert_loc,'Neighbour ID'] = [max_node_id+2]
 
-        nd_pdf.loc[insert_loc+1,'Node ID'] = max_node_id+2
+        nd_pdf.loc[insert_loc+1,'node'] = max_node_id+2
         nd_pdf.loc[insert_loc+1,'Degree of Node'] = 1
         nd_pdf.loc[insert_loc+1,'Position(ZXY)'] = str(pos_1)
         nd_pdf.loc[insert_loc+1,'Neighbour ID'] = [max_node_id+1]

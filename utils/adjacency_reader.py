@@ -17,27 +17,33 @@ def adjacency_to_extracted(extracted_csv_path,adjacency_path):
     else:
         ext_df={}
         
+    # Parse adjacency strings and positions
     adjs_list = adj_df['adjacencies'].tolist()
-    deg_nd_i = []
-    deg_nd = []
-    
-    for el in adjs_list:
-        elf = get_float_pos_comma(el)
-        deg_nd_i.append(len(elf))
-        if (len(elf)>0):
-            deg_nd.append(len(elf))
-        
     pos_x = adj_df['pos_x'].tolist()
     pos_y = adj_df['pos_y'].tolist()
     pos_z = adj_df['pos_z'].tolist()
 
-    pos_zxy = [[pos_z[i_n],pos_y[i_n],pos_x[i_n]] for i_n,i in enumerate(deg_nd) if i>0]    
-    
-    ext_df['Degree of Node'] = deg_nd
-    ext_df['Position(ZXY)'] = pos_zxy
-    
+    # Build lists for extracted rows only for nodes that have at least one adjacency
+    degrees = []
+    positions = []
+    neighbours = []
+
+    for i_n, adj_str in enumerate(adjs_list):
+        neighs = get_float_pos_comma(adj_str)
+        if len(neighs) > 0:
+            degrees.append(len(neighs))
+            positions.append([pos_z[i_n], pos_y[i_n], pos_x[i_n]])
+            neighbours.append(neighs)
+
+    ext_df['Degree of Node'] = degrees
+    ext_df['Position(ZXY)'] = positions
+    ext_df['Neighbour ID'] = neighbours
+
     ext_df = pd.DataFrame.from_dict(ext_df)
-    
-   
-    
-    ext_df.to_csv(extracted_csv_path,index=False)    
+
+    # ensure a 'node' column exists (1-based node ids)
+    if 'node' not in ext_df.columns:
+        ext_df = ext_df.reset_index(drop=True)
+        ext_df['node'] = ext_df.index + 1
+
+    ext_df.to_csv(extracted_csv_path,index=False)
