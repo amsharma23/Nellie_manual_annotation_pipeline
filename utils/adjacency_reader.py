@@ -41,9 +41,4 @@ def adjacency_to_extracted(extracted_csv_path,adjacency_path):
 
     ext_df = pd.DataFrame.from_dict(ext_df)
 
-    # ensure a 'node' column exists (1-based node ids)
-    if 'node' not in ext_df.columns:
-        ext_df = ext_df.reset_index(drop=True)
-        ext_df['node'] = ext_df.index + 1
-
     ext_df.to_csv(extracted_csv_path,index=False)

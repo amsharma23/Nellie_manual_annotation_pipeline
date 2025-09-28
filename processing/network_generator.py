@@ -10,6 +10,7 @@ import numpy as np
 from tifffile import imread
 from napari.utils.notifications import show_info, show_warning, show_error
 from scipy.ndimage import label as labell
+from utils.adjacency_reader import adjacency_to_extracted
 import networkx as nx
 import csv
 
@@ -21,13 +22,13 @@ def get_network(pixel_class_path):
         pixel_class_path (str): Path to pixel classification image
         
     Returns:
-        tuple: (save_path, edge_path) - Paths to generated CSV and edge list files
+        tuple: (adjc_path, edge_path) - Paths to generated CSV and edge list files
     """
     try:
         # Define output file paths
         base_name = os.path.basename(pixel_class_path).split(".")[0]
-        save_name = f"{base_name}_adjacency_list.csv"
-        save_path = os.path.join(os.path.dirname(pixel_class_path), save_name)
+        ajdc_name = f"{base_name}_adjacency_list.csv"
+        adjc_path = os.path.join(os.path.dirname(pixel_class_path), ajdc_name)
         
         edge_name = f"{base_name}_edge_list.txt"
         edge_path = os.path.join(os.path.dirname(pixel_class_path), edge_name)
@@ -144,7 +145,7 @@ def get_network(pixel_class_path):
         show_info(f"Found {len(components)} connected components")
         
         # Write adjacency list to CSV
-        with open(save_path, "w", newline="") as f:
+        with open(adjc_path, "w", newline="") as f:
             writer = csv.writer(f)
             # Header row
             writer.writerow(["component_num", "node", "pos_x", "pos_y", "pos_z", "adjacencies"])
@@ -169,9 +170,12 @@ def get_network(pixel_class_path):
         # Write edge list
         nx.write_edgelist(G, edge_path)
         
-        show_info(f"Network analysis complete. Files saved to:\n- {save_path}\n- {edge_path}")
-        return save_path, edge_path
-        
+        extr_path = os.path.join(os.path.dirname(pixel_class_path), f"{base_name}_extracted.csv")
+        adjacency_to_extracted(extr_path, adjc_path)
+
+        show_info(f"Network analysis complete. Files saved to:\n- {adjc_path}\n- {edge_path}\n- {extr_path}")
+        return adjc_path, edge_path
+
     except Exception as e:
         show_error(f"Error generating network: {str(e)}")
         return None, None
