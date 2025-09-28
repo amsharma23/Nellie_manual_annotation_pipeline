@@ -112,9 +112,22 @@ def load_image_and_skeleton(nellie_output_path):
                 for i, degree in enumerate(deg_extracted):
                     if degree == 1:
                         colors.append('blue')  # Endpoint nodes
+                    elif degree == 0:
+                        colors.append('white')  # Isolated nodes
+                    elif degree == 2:
+                        colors.append('magenta')  
                     else:
                         colors.append('green')  # Junction nodes
-                        
+                #Map skeleton points to node colors if they match positions   
+                position_color_map = {}
+                for i,pos in enumerate(positions):
+                    position_color_map[tuple(pos)] = colors[i]
+                #update face colors for skeleton points that match node positions
+                for i, point in enumerate(skel_im):
+                    point_tuple = tuple(point)
+                    if point_tuple in position_color_map:
+                        face_color_arr[i] = position_color_map[point_tuple]
+
                 return raw_im, skel_im, face_color_arr, positions, colors
                 
             else:
