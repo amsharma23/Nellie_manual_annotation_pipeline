@@ -1,5 +1,5 @@
 from app_state import app_state
-from utils.layer_loader import load_image_and_skeleton
+from utils.layer_loader import load_image_and_skeleton, load_dynamics_events_layer
 from natsort import natsorted
 import os
 from modifying_topology.edit_node import highlight
@@ -74,7 +74,7 @@ def reload_visualization(widget):
     raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(
         app_state.nellie_output_path
     )
-    
+
     if raw_im is not None and skel_im is not None:
         add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors)
 
@@ -106,6 +106,11 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors):
             scale=[1.765, 1, 1],
             name='Extracted Nodes'
         )
+
+    # Add dynamics events layer if available
+    if hasattr(widget, 'image_slider'):
+        current_timepoint = widget.image_slider.value()
+        load_dynamics_events_layer(widget.viewer, current_timepoint)
 
 
 def setup_key_bindings(widget, viewer):

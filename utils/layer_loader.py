@@ -13,6 +13,7 @@ import pandas as pd
 from app_state import app_state
 import numpy as np
 from .parsing import get_float_pos_comma
+import glob
 
 def load_image_and_skeleton(nellie_output_path):
     """Load raw image and skeleton from Nellie output directory.
@@ -144,3 +145,182 @@ def load_image_and_skeleton(nellie_output_path):
     except Exception as e:
         show_error(f"Error loading image and skeleton: {str(e)}")
         return None, None, [], [], []
+
+
+def load_dynamics_events_layer(viewer, current_timepoint=None):
+    """
+    Load dynamic events as color-coded points layer in the Napari viewer.
+
+    Args:
+        viewer: Napari viewer instance
+        current_timepoint: Current timepoint to filter events (optional)
+
+    Returns:
+        bool: True if events were loaded successfully, False otherwise
+    """
+    if not app_state.loaded_folder:
+        return False
+
+    # Look for dynamics analysis results CSV files directly in loaded folder
+    dynamics_folder = app_state.loaded_folder
+
+    # Define event types and their colors (avoiding network node colors: blue, white, magenta, green, red)
+    event_types = {
+        'tip_edge_fusion_events.csv': {'color': 'gold', 'name': 'Tip-Edge Fusion'},
+        'junction_breakage_events.csv': {'color': 'darkorange', 'name': 'Junction Breakage'},
+        'tip_tip_fusion_events.csv': {'color': 'purple', 'name': 'Tip-Tip Fusion'},
+        'tip_tip_fission_events.csv': {'color': 'turquoise', 'name': 'Tip-Tip Fission'},
+        'extrusion_events.csv': {'color': 'lime', 'name': 'Extrusion'},
+        'retraction_events.csv': {'color': 'hotpink', 'name': 'Retraction'}
+    }
+
+    all_points = []
+    all_colors = []
+    all_properties = []
+
+    try:
+        for csv_file, config in event_types.items():
+            csv_path = os.path.join(dynamics_folder, csv_file)
+
+            if os.path.exists(csv_path):
+                df = pd.read_csv(csv_path)
+
+                if df.empty:
+                    continue
+
+                # Extract points and filter by timepoint if specified
+                points, colors, properties = extract_event_points(df, config, current_timepoint)
+
+                all_points.extend(points)
+                all_colors.extend(colors)
+                all_properties.extend(properties)
+
+        if all_points:
+            # Remove existing dynamics events layer if it exists
+            layer_names = [layer.name for layer in viewer.layers]
+            if "Dynamic Events" in layer_names:
+                viewer.layers.remove("Dynamic Events")
+
+            # Add new points layer
+            points_array = np.array(all_points)
+            properties_dict = {
+                'event_type': [prop['event_type'] for prop in all_properties],
+                'timepoint': [prop['timepoint'] for prop in all_properties]
+            }
+
+            viewer.add_points(
+                points_array,
+                properties=properties_dict,
+                face_color=all_colors,
+                size=8,
+                opacity=0.5,
+                name="Dynamic Events"
+            )
+
+            show_info(f"Loaded {len(all_points)} dynamic events for timepoint {current_timepoint if current_timepoint else 'all'}")
+            return True
+
+    except Exception as e:
+        show_error(f"Error loading dynamics events: {str(e)}")
+        return False
+
+    return False
+
+
+def extract_event_points(df, config, current_timepoint=None):
+    """
+    Extract points from event DataFrame based on event type structure.
+
+    Args:
+        df: Event DataFrame
+        config: Event configuration (color, name)
+        current_timepoint: Current timepoint to filter by
+
+    Returns:
+        tuple: (points, colors, properties)
+    """
+    points = []
+    colors = []
+    properties = []
+
+    for _, row in df.iterrows():
+        event_points = []
+        event_timepoint = None
+
+        # Handle different event structures
+        if 'position_t1' in row and 'position_t2' in row:
+            # Events with two timepoints (tip-edge fusion, junction breakage)
+            if 'timepoint_1' in row and 'timepoint_2' in row:
+                timepoint_1 = row['timepoint_1']
+                timepoint_2 = row['timepoint_2']
+
+                if current_timepoint is None or current_timepoint == timepoint_1:
+                    pos_1 = parse_position(row['position_t1'])
+                    if pos_1:
+                        event_points.append(pos_1)
+                        event_timepoint = timepoint_1
+
+                if current_timepoint is None or current_timepoint == timepoint_2:
+                    pos_2 = parse_position(row['position_t2'])
+                    if pos_2:
+                        event_points.append(pos_2)
+                        event_timepoint = timepoint_2
+
+        elif 'tip1_position' in row and 'tip2_position' in row:
+            # Tip-tip events
+            if 'timepoint' in row:
+                timepoint = row['timepoint']
+                if current_timepoint is None or current_timepoint == timepoint:
+                    pos_1 = parse_position(row['tip1_position'])
+                    pos_2 = parse_position(row['tip2_position'])
+                    if pos_1 and pos_2:
+                        event_points.extend([pos_1, pos_2])
+                        event_timepoint = timepoint
+
+        elif 'tip_position' in row and 'junction_position' in row:
+            # Extrusion/retraction events
+            if 'timepoint' in row:
+                timepoint = row['timepoint']
+                if current_timepoint is None or current_timepoint == timepoint:
+                    tip_pos = parse_position(row['tip_position'])
+                    junction_pos = parse_position(row['junction_position'])
+                    if tip_pos and junction_pos:
+                        event_points.extend([tip_pos, junction_pos])
+                        event_timepoint = timepoint
+
+        # Add points to lists
+        for point in event_points:
+            points.append(point)
+            colors.append(config['color'])
+            properties.append({
+                'event_type': config['name'],
+                'timepoint': event_timepoint
+            })
+
+    return points, colors, properties
+
+
+def parse_position(position):
+    """
+    Parse position from various formats (list, string, etc.)
+
+    Args:
+        position: Position data in various formats
+
+    Returns:
+        list: [z, y, x] coordinates or None if parsing fails
+    """
+    try:
+        if isinstance(position, str):
+            # Handle string representation of list
+            import ast
+            position = ast.literal_eval(position)
+
+        if isinstance(position, (list, tuple)) and len(position) >= 3:
+            # Return as [z, y, x] for Napari
+            return [float(position[2]), float(position[1]), float(position[0])]
+
+    except Exception:
+        pass
+
+    return None
