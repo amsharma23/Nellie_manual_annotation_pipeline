@@ -66,7 +66,8 @@ def analyze_dynamics_clicked(widget):
         # Run event analysis using the CSV file
         app_state.dynamics_events = analyze_events_from_csv(
             combined_csv_path,
-            distance_threshold=distance_threshold
+            distance_threshold=distance_threshold,
+            output_folder=app_state.loaded_folder
         )
 
         widget.log_status("Dynamics analysis completed successfully!")
