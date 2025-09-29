@@ -39,14 +39,16 @@ def calculate_degree_from_adjacencies(adj_str):
 def match_nodes_spatially(df_t1, df_t2, distance_threshold=5.0, z_scale: float = (0.23/0.077)):
     """
     Match nodes between two timepoints based on spatial proximity.
+    Now allows one-to-many matching: each node in t1 can match multiple nodes in t2.
 
     Args:
         df_t1: DataFrame for timepoint 1
         df_t2: DataFrame for timepoint 2
         distance_threshold: Maximum distance to consider nodes as the same
+        z_scale: Scaling factor for z-dimension
 
     Returns:
-        Dictionary mapping indices in df_t1 to indices in df_t2
+        Dictionary mapping indices in df_t1 to list of indices in df_t2
     """
     if df_t1.empty or df_t2.empty:
         return {}
@@ -67,21 +69,18 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=5.0, z_scale: float =
     # Calculate distance matrix using scaled z
     distances = cdist(pos1_scaled, pos2_scaled)
 
-    # Find best matches
+    # Find all matches within threshold (one-to-many)
     matches = {}
-    used_t2_indices = set()
 
     for i in range(len(pos1)):
-        # Find closest node in t2 that hasn't been matched yet
-        valid_distances = distances[i].copy()
-        valid_distances[list(used_t2_indices)] = np.inf
+        # Find all nodes in t2 within distance threshold
+        valid_matches = []
+        for j in range(len(pos2)):
+            if distances[i, j] <= distance_threshold:
+                valid_matches.append(j)
 
-        min_dist_idx = np.argmin(valid_distances)
-        min_dist = valid_distances[min_dist_idx]
-
-        if min_dist <= distance_threshold:
-            matches[i] = min_dist_idx
-            used_t2_indices.add(min_dist_idx)
+        if valid_matches:
+            matches[i] = valid_matches
 
     return matches
 
@@ -114,8 +113,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
     df_t2['actual_degree'] = df_t2['adjacencies'].apply(calculate_degree_from_adjacencies)
 
     # Filter to only degree 1 and 3 nodes (assumption from user)
-    df_t1 = df_t1[df_t1['actual_degree'].isin([1, 3])]
-    df_t2 = df_t2[df_t2['actual_degree'].isin([1, 3])]
+    #df_t1 = df_t1[df_t1['actual_degree'].isin([1, 3])]
+    #df_t2 = df_t2[df_t2['actual_degree'].isin([1, 3])]
 
     # Match nodes spatially (propagate z scaling)
     matches = match_nodes_spatially(df_t1, df_t2, distance_threshold, z_scale)
@@ -131,32 +130,41 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
 
     # Track matched nodes to identify appearance/disappearance
     matched_t1_indices = set(matches.keys())
-    matched_t2_indices = set(matches.values())
+    matched_t2_indices = set()
+    for t2_list in matches.values():
+        matched_t2_indices.update(t2_list)
 
-    # Analyze matched nodes for degree changes
-    for t1_idx, t2_idx in matches.items():
+    # Analyze matched nodes for degree changes and fission events
+    for t1_idx, t2_indices_list in matches.items():
         degree_t1 = df_t1.iloc[t1_idx]['actual_degree']
-        degree_t2 = df_t2.iloc[t2_idx]['actual_degree']
-
         pos_t1 = [df_t1.iloc[t1_idx]['pos_x'], df_t1.iloc[t1_idx]['pos_y'], df_t1.iloc[t1_idx]['pos_z']]
-        pos_t2 = [df_t2.iloc[t2_idx]['pos_x'], df_t2.iloc[t2_idx]['pos_y'], df_t2.iloc[t2_idx]['pos_z']]
 
-        event_data = {
-            'position_t1': pos_t1,
-            'position_t2': pos_t2,
-            'degree_t1': degree_t1,
-            'degree_t2': degree_t2,
-            'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
-            'timepoint_2': df_t2.iloc[t2_idx].get('time_point', 'unknown')
-        }
+        # Check for one-to-one matches (traditional events)
+        if len(t2_indices_list) == 1:
+            t2_idx = t2_indices_list[0]
+            degree_t2 = df_t2.iloc[t2_idx]['actual_degree']
+            pos_t2 = [df_t2.iloc[t2_idx]['pos_x'], df_t2.iloc[t2_idx]['pos_y'], df_t2.iloc[t2_idx]['pos_z']]
 
-        # 1. Tip-edge fusion: degree 1 → degree 3 (tip fuses to edge)
-        if degree_t1 == 1 and degree_t2 == 3:
-            events['tip_edge_fusion'].append(event_data)
+            event_data = {
+                'position_t1': pos_t1,
+                'position_t2': pos_t2,
+                'degree_t1': degree_t1,
+                'degree_t2': degree_t2,
+                'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
+                'timepoint_2': df_t2.iloc[t2_idx].get('time_point', 'unknown')
+            }
 
-        # 2. Junction breakage: degree 3 → degree 1 (junction breaks)
-        elif degree_t1 == 3 and degree_t2 == 1:
-            events['junction_breakage'].append(event_data)
+            # 1. Tip-edge fusion: degree 1 → degree ≥3 (tip fuses to edge to become junction)
+            # Must be exactly one-to-one transformation with no other changes
+            if degree_t1 == 1 and degree_t2 >= 3:
+                events['tip_edge_fusion'].append(event_data)
+
+            # 2. Junction breakage: degree ≥3 → degree 1 (junction breaks to become tip)
+            # Must be exactly one-to-one transformation with no other changes
+            elif degree_t1 >= 3 and degree_t2 == 1:
+                events['junction_breakage'].append(event_data)
+
+       
 
     # Analyze unmatched nodes for tip-tip events and extrusion/retraction
     disappeared_t1 = set(range(len(df_t1))) - matched_t1_indices
@@ -168,8 +176,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
     disappeared_junctions = [idx for idx in disappeared_t1 if df_t1.iloc[idx]['actual_degree'] == 3]
     appeared_junctions = [idx for idx in appeared_t2 if df_t2.iloc[idx]['actual_degree'] == 3]
 
-    # 3. Tip-tip fusion: two tips disappear (merge into edge between junctions)
-    # Heuristic: pairs of nearby disappeared tips
+    # 3. Tip-tip fusion: exactly 2 degree 1 nodes in close proximity disappear together
+    # Must be exactly 2 tips that disappear and are within distance threshold
     for i, idx1 in enumerate(disappeared_tips):
         for idx2 in disappeared_tips[i+1:]:
             pos1 = [df_t1.iloc[idx1]['pos_x'], df_t1.iloc[idx1]['pos_y'], df_t1.iloc[idx1]['pos_z']]
@@ -183,12 +191,15 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
             if p2.size >= 3:
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
-            if distance <= distance_threshold * 2:  # Allow larger threshold for fusion
+
+            # Use standard distance threshold for precise tip-tip fusion detection
+            if distance <= 2*distance_threshold:
                 events['tip_tip_fusion'].append({
                     'tip1_position': pos1,
                     'tip2_position': pos2,
                     'distance': distance,
-                    'timepoint': df_t1.iloc[idx1].get('time_point', 'unknown')
+                    'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
+                    'timepoint_2': df_t2.iloc[t2_idx].get('time_point', 'unknown')
                 })
 
     # 4. Tip-tip fission: two tips appear (edge splits)
@@ -211,7 +222,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                     'tip1_position': pos1,
                     'tip2_position': pos2,
                     'distance': distance,
-                    'timepoint': df_t2.iloc[idx1].get('time_point', 'unknown')
+                    'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
+                    'timepoint_2': df_t2.iloc[t2_idx].get('time_point', 'unknown')  
                 })
 
     # 5. Extrusion: new tip and junction appear (tip juts out of edge)
@@ -234,7 +246,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                     'tip_position': tip_pos,
                     'junction_position': junction_pos,
                     'distance': distance,
-                    'timepoint': df_t2.iloc[tip_idx].get('time_point', 'unknown')
+                    'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
+                    'timepoint_2': df_t2.iloc[t2_idx].get('time_point', 'unknown')  
                 })
 
     # 6. Retraction: tip and junction disappear (opposite of extrusion)
@@ -257,7 +270,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                     'tip_position': tip_pos,
                     'junction_position': junction_pos,
                     'distance': distance,
-                    'timepoint': df_t1.iloc[tip_idx].get('time_point', 'unknown')
+                    'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
+                    'timepoint_2': df_t2.iloc[t2_idx].get('time_point', 'unknown')  
                 })
 
     return events
@@ -277,9 +291,11 @@ def detect_node_appearance_disappearance(df_t1, df_t2, distance_threshold=5.0):
     """
     matches = match_nodes_spatially(df_t1, df_t2, distance_threshold)
 
-    # Find unmatched nodes
+    # Find unmatched nodes (handle one-to-many matching)
     matched_t1_indices = set(matches.keys())
-    matched_t2_indices = set(matches.values())
+    matched_t2_indices = set()
+    for t2_list in matches.values():
+        matched_t2_indices.update(t2_list)
 
     disappeared_indices = set(range(len(df_t1))) - matched_t1_indices
     appeared_indices = set(range(len(df_t2))) - matched_t2_indices
@@ -376,23 +392,12 @@ def analyze_timeseries_events(combined_df, distance_threshold=5.0):
         'total_retraction': 0
     }
 
-    print(f"Analyzing events across {len(time_points)} time points...")
-    print("Event categories:")
-    print("1. Tip-edge fusion: degree 1 node fuses to edge → degree 3 node")
-    print("2. Junction breakage: degree 3 node breaks → degree 1 node + edge")
-    print("3. Tip-tip fusion: two degree 1 nodes merge → edge")
-    print("4. Tip-tip fission: edge splits → two degree 1 nodes")
-    print("5. Extrusion: tip juts out from edge → new tip + junction")
-    print("6. Retraction: tip retracts into edge → tip + junction disappear")
-    print()
 
     for i in range(len(time_points) - 1):
         t1, t2 = time_points[i], time_points[i + 1]
 
         df_t1 = combined_df[combined_df['time_point'] == t1]
         df_t2 = combined_df[combined_df['time_point'] == t2]
-
-        print(f"Comparing timepoints {t1} → {t2}")
 
         # Classify events using new system
         events = classify_network_events(df_t1, df_t2, distance_threshold)
@@ -412,14 +417,6 @@ def analyze_timeseries_events(combined_df, distance_threshold=5.0):
         summary_stats['total_tip_tip_fission'] += len(events['tip_tip_fission'])
         summary_stats['total_extrusion'] += len(events['extrusion'])
         summary_stats['total_retraction'] += len(events['retraction'])
-
-        # Print immediate results for this timepoint transition
-        print(f"  Tip-edge fusion: {len(events['tip_edge_fusion'])}")
-        print(f"  Junction breakage: {len(events['junction_breakage'])}")
-        print(f"  Tip-tip fusion: {len(events['tip_tip_fusion'])}")
-        print(f"  Tip-tip fission: {len(events['tip_tip_fission'])}")
-        print(f"  Extrusion: {len(events['extrusion'])}")
-        print(f"  Retraction: {len(events['retraction'])}")
 
     all_events['summary_statistics'] = summary_stats
 

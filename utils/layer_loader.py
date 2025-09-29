@@ -247,19 +247,11 @@ def extract_event_points(df, config, current_timepoint=None):
         event_points = []
         event_timepoint = None
 
-        # Handle different event structures
+        # Handle different event structures - always use timepoint_2
         if 'position_t1' in row and 'position_t2' in row:
             # Events with two timepoints (tip-edge fusion, junction breakage)
-            if 'timepoint_1' in row and 'timepoint_2' in row:
-                timepoint_1 = row['timepoint_1']
+            if 'timepoint_2' in row:
                 timepoint_2 = row['timepoint_2']
-
-                if current_timepoint is None or current_timepoint == timepoint_1:
-                    pos_1 = parse_position(row['position_t1'])
-                    if pos_1:
-                        event_points.append(pos_1)
-                        event_timepoint = timepoint_1
-
                 if current_timepoint is None or current_timepoint == timepoint_2:
                     pos_2 = parse_position(row['position_t2'])
                     if pos_2:
@@ -268,25 +260,25 @@ def extract_event_points(df, config, current_timepoint=None):
 
         elif 'tip1_position' in row and 'tip2_position' in row:
             # Tip-tip events
-            if 'timepoint' in row:
-                timepoint = row['timepoint']
-                if current_timepoint is None or current_timepoint == timepoint:
+            if 'timepoint_2' in row:
+                timepoint_2 = row['timepoint_2']
+                if current_timepoint is None or current_timepoint == timepoint_2:
                     pos_1 = parse_position(row['tip1_position'])
                     pos_2 = parse_position(row['tip2_position'])
                     if pos_1 and pos_2:
                         event_points.extend([pos_1, pos_2])
-                        event_timepoint = timepoint
+                        event_timepoint = timepoint_2
 
         elif 'tip_position' in row and 'junction_position' in row:
             # Extrusion/retraction events
-            if 'timepoint' in row:
-                timepoint = row['timepoint']
-                if current_timepoint is None or current_timepoint == timepoint:
+            if 'timepoint_2' in row:
+                timepoint_2 = row['timepoint_2']
+                if current_timepoint is None or current_timepoint == timepoint_2:
                     tip_pos = parse_position(row['tip_position'])
                     junction_pos = parse_position(row['junction_position'])
                     if tip_pos and junction_pos:
                         event_points.extend([tip_pos, junction_pos])
-                        event_timepoint = timepoint
+                        event_timepoint = timepoint_2
 
         # Add points to lists
         for point in event_points:

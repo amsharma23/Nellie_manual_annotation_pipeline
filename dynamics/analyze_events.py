@@ -41,7 +41,7 @@ def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None
     # Print detailed results
     print("\n" + "="*50)
     print("NETWORK DYNAMICS EVENT ANALYSIS RESULTS")
-    print("6-Category Classification (Degree 1 & 3 Nodes Only)")
+    print("6-Category Classification")
     print("="*50)
 
     stats = events['summary_statistics']
@@ -56,48 +56,6 @@ def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None
     total_events = sum(stats.values())
     print(f"\nTotal events detected: {total_events}")
 
-    # Show some example events
-    if events['tip_edge_fusion_events']:
-        print(f"\nExample TIP-EDGE FUSION events:")
-        for i, event in enumerate(events['tip_edge_fusion_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: {event['timepoint_1']} → {event['timepoint_2']}")
-            print(f"    Position: {event['position_t1']} → {event['position_t2']}")
-            print(f"    Degree change: {event['degree_t1']} → {event['degree_t2']}")
-
-    if events['junction_breakage_events']:
-        print(f"\nExample JUNCTION BREAKAGE events:")
-        for i, event in enumerate(events['junction_breakage_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: {event['timepoint_1']} → {event['timepoint_2']}")
-            print(f"    Position: {event['position_t1']} → {event['position_t2']}")
-            print(f"    Degree change: {event['degree_t1']} → {event['degree_t2']}")
-
-    if events['tip_tip_fusion_events']:
-        print(f"\nExample TIP-TIP FUSION events:")
-        for i, event in enumerate(events['tip_tip_fusion_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
-            print(f"    Tip positions: {event['tip1_position']} & {event['tip2_position']}")
-            print(f"    Distance: {event['distance']:.2f}")
-
-    if events['tip_tip_fission_events']:
-        print(f"\nExample TIP-TIP FISSION events:")
-        for i, event in enumerate(events['tip_tip_fission_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
-            print(f"    Tip positions: {event['tip1_position']} & {event['tip2_position']}")
-            print(f"    Distance: {event['distance']:.2f}")
-
-    if events['extrusion_events']:
-        print(f"\nExample EXTRUSION events:")
-        for i, event in enumerate(events['extrusion_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
-            print(f"    Tip: {event['tip_position']}, Junction: {event['junction_position']}")
-            print(f"    Distance: {event['distance']:.2f}")
-
-    if events['retraction_events']:
-        print(f"\nExample RETRACTION events:")
-        for i, event in enumerate(events['retraction_events'][:3]):  # Show first 3
-            print(f"  Event {i+1}: At timepoint {event['timepoint']}")
-            print(f"    Tip: {event['tip_position']}, Junction: {event['junction_position']}")
-            print(f"    Distance: {event['distance']:.2f}")
 
     # Save results if output folder specified
     if output_folder:
