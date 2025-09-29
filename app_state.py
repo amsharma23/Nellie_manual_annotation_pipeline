@@ -24,5 +24,10 @@ class AppState:
         self.current_image_index = 0  # Current image index
         self.image_sets_keys = []
         self.image_sets = {}
+        
+        # Dynamics analysis
+        self.combined_timeseries_df = None
+        self.dynamics_events = None
+        self.dynamics_analysis_results = None
 
 app_state = AppState()

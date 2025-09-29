@@ -19,6 +19,7 @@ from .process_image import process_clicked
 from .view_images import view_clicked
 from .network_gen import network_click
 from .view_graph import view_graph
+from .dynamics_analysis import analyze_dynamics_clicked
 
 class FileLoaderWidget(QWidget):
     """Widget for loading image files and setting processing options."""
@@ -183,7 +184,20 @@ class FileLoaderWidget(QWidget):
         network_layout.addWidget(self.graph_scroll)
         
         layout.addWidget(self.network_group)
-        
+
+        # Dynamics Analysis section
+        self.dynamics_group = QGroupBox("Dynamics Analysis")
+        dynamics_layout = QVBoxLayout()
+        self.dynamics_group.setLayout(dynamics_layout)
+
+        # Analyze Dynamics button
+        self.analyze_dynamics_btn = QPushButton("Analyze Dynamics")
+        self.analyze_dynamics_btn.clicked.connect(self.on_analyze_dynamics_clicked)
+        self.analyze_dynamics_btn.setEnabled(False)  # Disabled by default
+        dynamics_layout.addWidget(self.analyze_dynamics_btn)
+
+        layout.addWidget(self.dynamics_group)
+
         # Status section
         self.status_label = QLabel("Status:")  # Store as class attribute
         layout.addWidget(self.status_label)
@@ -201,7 +215,7 @@ class FileLoaderWidget(QWidget):
     def on_browse_clicked(self):
         """Handle browse button click to select input file or folder."""
         file_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        browse_folder(self, self.path_label, self.process_btn, self.view_btn, self.network_btn, self.graph_btn, self.type_combo,file_path)
+        browse_folder(self, self.path_label, self.process_btn, self.view_btn, self.network_btn, self.graph_btn, self.type_combo, self.analyze_dynamics_btn, file_path)
             
     def on_process_clicked(self):
         """Handle process button click to run Nellie processing."""
@@ -254,3 +268,7 @@ class FileLoaderWidget(QWidget):
     def on_view_graph_clicked(self):
         """Handle view graph button click to visualize the network graph."""
         view_graph(self)
+
+    def on_analyze_dynamics_clicked(self):
+        """Handle analyze dynamics button click to run dynamics analysis."""
+        analyze_dynamics_clicked(self)

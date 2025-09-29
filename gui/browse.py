@@ -8,7 +8,7 @@ QVBoxLayout, QHBoxLayout, QWidget, QFileDialog)
 
 
 
-def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_btn, type_combo,file_path):
+def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_btn, type_combo, analyze_dynamics_btn, file_path):
     """Handle browse button click to select input file or folder.
     
     Args:
@@ -30,27 +30,34 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
         
         #check if there's an output folder already
         if app_state.folder_type == 'Single TIFF':
+            # Disable dynamics analysis for single TIFF
+            analyze_dynamics_btn.setEnabled(False)
+
             directory_list = [item for item in os.listdir(file_path) if (os.path.isdir(os.path.join(file_path,item)))]
-            
+
             if 'nellie_output' in directory_list:
                 app_state.nellie_output_path = os.path.join(file_path, 'nellie_output/nellie_necessities')
                 view_btn.setEnabled(True)
                 widget.log_status( f'{file_path} has a processed output already!')
         
         elif app_state.folder_type == 'Time Series':
-            
-            subdirs = [d for d in os.listdir(app_state.loaded_folder) 
+
+            subdirs = [d for d in os.listdir(app_state.loaded_folder)
                       if os.path.isdir(os.path.join(app_state.loaded_folder, d))]
-            
+
             if subdirs:
-                
+
                 # Process each subfolder as a time point
                 widget.log_status(f"Found {len(subdirs)} time point folders in {app_state.loaded_folder} to view/process.")
                 subdirs = natsorted(subdirs)
-                
+
+                # Check if all subfolders have adjacency list CSV files for dynamics analysis
+                all_have_adjacency = True
+                missing_adjacency_folders = []
+
                 for subdir in subdirs:
                     subdir_path = os.path.join(app_state.loaded_folder, subdir)
-                    check_nellie_path = os.path.exists(os.path.join(subdir_path,'nellie_output'))
+                    check_nellie_path = os.path.exists(os.path.join(subdir_path,'nellie_output/nellie_necessities'))
                 
                     if check_nellie_path:
                         
@@ -61,7 +68,8 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
                         check_skel = False
                         check_extracted = False
                         check_multigraph_im = False
-                        
+                        check_adjacency = False
+
                         for file in nellie_op_files:
                             if file.endswith('im_pixel_class.ome.tif') or file.endswith('im_pixel_class.ome.tiff'):
                                 check_skel = True
@@ -69,6 +77,13 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
                                 check_extracted = True
                             if file.endswith('multigraph.png') or file.endswith('multigraph.pdf'):
                                 check_multigraph_im = True
+                            if file.endswith('adjacency_list.csv'):
+                                check_adjacency = True
+
+                        # Check for adjacency file for dynamics analysis
+                        if not check_adjacency:
+                            all_have_adjacency = False
+                            missing_adjacency_folders.append(subdir)
 
                         if check_skel and check_extracted and check_multigraph_im:
                             network_btn.setEnabled(True)
@@ -84,3 +99,15 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
                             network_btn.setEnabled(True)
                             graph_btn.setEnabled(False)
                             widget.log_status(f"Raw Image is already processed and has a skeleton for {subdir}!")
+                    else:
+                        # No nellie output folder means no adjacency file
+                        all_have_adjacency = False
+                        missing_adjacency_folders.append(subdir)
+
+                # Enable/disable dynamics analysis button based on adjacency file availability
+                if all_have_adjacency:
+                    analyze_dynamics_btn.setEnabled(True)
+                    widget.log_status("All time points have adjacency files. Dynamics analysis available!")
+                else:
+                    analyze_dynamics_btn.setEnabled(False)
+                    widget.log_status(f"Dynamics analysis disabled. Missing adjacency files in folders: {missing_adjacency_folders}")
