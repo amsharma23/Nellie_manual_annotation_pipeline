@@ -171,7 +171,7 @@ def load_dynamics_events_layer(viewer, current_timepoint=None):
         'tip_tip_fusion_events.csv': {'color': 'purple', 'name': 'Tip-Tip Fusion'},
         'tip_tip_fission_events.csv': {'color': 'turquoise', 'name': 'Tip-Tip Fission'},
         'extrusion_events.csv': {'color': 'lime', 'name': 'Extrusion'},
-        'retraction_events.csv': {'color': 'hotpink', 'name': 'Retraction'}
+        'retraction_events.csv': {'color': 'olive', 'name': 'Retraction'}
     }
 
     all_points = []
