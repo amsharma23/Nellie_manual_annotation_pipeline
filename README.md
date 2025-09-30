@@ -71,13 +71,47 @@ A graphical user interface application for manual network analysis and topology 
    python main.py
    ```
 
+## Data Structure Requirements
+
+### Single TIFF
+For single image analysis, your folder should contain:
+```
+your_data_folder/
+├── image_name.ome.tif    # Required: OME-TIFF format image file
+└── [other files...]      # Optional: any other files
+```
+
+**Requirements:**
+- Must contain at least one `.ome.tif` file
+- The `.ome.tif` file is required to run Nellie processing
+- Folder can contain additional files, but the OME-TIFF is essential
+
+### Time Series
+For time-series analysis, organize your data as follows:
+```
+your_timeseries_folder/
+├── 1/
+│   └── timepoint_1.ome.tif    # Required: OME-TIFF for timepoint 1
+├── 2/
+│   └── timepoint_2.ome.tif    # Required: OME-TIFF for timepoint 2
+├── 3/
+│   └── timepoint_3.ome.tif    # Required: OME-TIFF for timepoint 3
+└── [additional numbered folders...]
+```
+
+**Requirements:**
+- Each timepoint must be in its own numbered folder (1, 2, 3, etc.)
+- Each folder must contain exactly one `.ome.tif` file
+- Folder numbers should be sequential starting from 1
+- All `.ome.tif` files are required for Nellie processing and dynamics analysis
+
 ## Usage
 
 1. **Launch the Application**: Run `python main.py` to start the Napari viewer with Nellie controls
-2. **Load Data**: Use the file browser to load your image data
+2. **Load Data**: Use the file browser to load your image data (following the structure above)
 3. **Process Networks**: Run Nellie processing pipeline to extract network skeletons
 4. **Manual Editing**: Use the topology modification tools to refine networks
-5. **Analyze Dynamics**: Study temporal changes using the dynamics analysis tools
+5. **Analyze Dynamics**: Study temporal changes using the dynamics analysis tools (Time Series only)
 
 ## Key Components
 
