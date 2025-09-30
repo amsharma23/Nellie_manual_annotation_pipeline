@@ -70,16 +70,16 @@ def load_image_and_skeleton(nellie_output_path):
         
         if os.path.exists(adjacency_path) and os.path.exists(node_path_extracted):
             node_df = pd.read_csv(node_path_extracted)
-            # normalize legacy column name 'Node ID' to 'node'
-            if 'Node ID' in node_df.columns:
-                node_df.rename(columns={'Node ID': 'node'}, inplace=True)
-            # ensure a 'node' column exists (create from index if missing)
-            if 'node' not in node_df.columns:
-                node_df = node_df.reset_index(drop=True)
-                node_df['node'] = node_df.index + 1
+            # ensure 'Node ID' column exists (create from index if missing)
+            if 'Node ID' not in node_df.columns:
+                if 'node' in node_df.columns:
+                    node_df.rename(columns={'node': 'Node ID'}, inplace=True)
+                else:
+                    node_df = node_df.reset_index(drop=True)
+                    node_df['Node ID'] = node_df.index + 1
             # coerce to int for consistency
             try:
-                node_df['node'] = node_df['node'].astype(int)
+                node_df['Node ID'] = node_df['Node ID'].astype(int)
             except Exception:
                 pass
             app_state.node_dataframe = node_df            
@@ -89,14 +89,15 @@ def load_image_and_skeleton(nellie_output_path):
         # Process extracted nodes if available
         if os.path.exists(node_path_extracted):
             node_df = pd.read_csv(node_path_extracted)
-            # normalize legacy column name 'Node ID' to 'node'
-            if 'Node ID' in node_df.columns:
-                node_df.rename(columns={'Node ID': 'node'}, inplace=True)
-            if 'node' not in node_df.columns:
-                node_df = node_df.reset_index(drop=True)
-                node_df['node'] = node_df.index + 1
+            # ensure 'Node ID' column exists
+            if 'Node ID' not in node_df.columns:
+                if 'node' in node_df.columns:
+                    node_df.rename(columns={'node': 'Node ID'}, inplace=True)
+                else:
+                    node_df = node_df.reset_index(drop=True)
+                    node_df['Node ID'] = node_df.index + 1
             try:
-                node_df['node'] = node_df['node'].astype(int)
+                node_df['Node ID'] = node_df['Node ID'].astype(int)
             except Exception:
                 pass
             app_state.node_dataframe = node_df
@@ -133,12 +134,12 @@ def load_image_and_skeleton(nellie_output_path):
                 
             else:
                 # Create empty dataframe if no data
-                app_state.node_dataframe = pd.DataFrame(columns=['node','Degree of Node', 'Position(ZXY)'])
+                app_state.node_dataframe = pd.DataFrame(columns=['Node ID','Degree of Node', 'Position(ZXY)'])
                 app_state.node_dataframe.to_csv(node_path_extracted, index=False)
                 return raw_im, skel_im, face_color_arr, [], []
         else:
             # Create new node file if none exists
-            app_state.node_dataframe = pd.DataFrame(columns=['node','Degree of Node', 'Position(ZXY)'])
+            app_state.node_dataframe = pd.DataFrame(columns=['Node ID','Degree of Node', 'Position(ZXY)'])
             app_state.node_dataframe.to_csv(node_path_extracted, index=False)
             return raw_im, skel_im, face_color_arr, [], []
             

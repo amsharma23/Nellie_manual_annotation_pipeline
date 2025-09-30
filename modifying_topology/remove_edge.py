@@ -11,7 +11,7 @@ def remove(viewer)->bool:
     nd_pdf = app_state.node_dataframe
     node_path = app_state.node_path
     #Find connected nodes if any
-    node_ids = nd_pdf['node'].tolist()
+    node_ids = nd_pdf['Node ID'].tolist()
     node_positions = nd_pdf['Position(ZXY)'].tolist()
     node_positions_fl = [get_float_pos_comma(st) for st in node_positions]
 
@@ -84,7 +84,7 @@ def remove(viewer)->bool:
         
         
         nd_pdf.to_csv(node_path,index=False)
-        node_ids = nd_pdf['node'].tolist()
+        node_ids = nd_pdf['Node ID'].tolist()
         node_positions = nd_pdf['Position(ZXY)'].tolist()
 
         if ((len(connected_nodes_1) == 2) and (node_id_1 not in connected_nodes_0)):
