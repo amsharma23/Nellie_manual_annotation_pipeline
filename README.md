@@ -131,6 +131,14 @@ The following keyboard shortcuts are available for network editing after visuali
 - **Green**: Junctions (degree 3+)
 - **Magenta**: Degree 2 nodes
 
+### Dynamic Analysis Events
+- **Gold**: Tip-Edge fusion
+- **Dark Orange**: Junction-Breakage
+- **Purple**: Tip-Tip fusion
+- **Turquoise**: Tip-Tip fission
+- **Lime**: Extrusion
+- **Olive**: Retraction
+
 ## Key Components
 
 ### Main Application (`main.py`)
