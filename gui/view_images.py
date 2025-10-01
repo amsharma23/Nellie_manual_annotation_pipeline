@@ -34,7 +34,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                 raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
                 
                 if raw_im is not None and skel_im is not None:
-                    
+                    network_btn.setEnabled(True)
                     # Add layers to viewer
                     app_state.raw_layer = widget.viewer.add_image(
                         raw_im, 
@@ -53,7 +53,6 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                     # Add extracted points if available
                     if positions and colors:
 
-                        network_btn.setEnabled(True)
                         widget.graph_btn.setEnabled(True)
 
                         app_state.points_layer = widget.viewer.add_points(
@@ -135,7 +134,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                         raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
                 
                         if raw_im is not None and skel_im is not None:
-                            
+                            network_btn.setEnabled(True)
                             # Add layers to viewer
                             app_state.raw_layer = widget.viewer.add_image(
                                 raw_im, 
