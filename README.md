@@ -73,7 +73,7 @@ A graphical user interface application for manual network analysis and topology 
 
 ## Data Structure Requirements
 
-### Single TIFF
+### Single Frame Z-stack TIFF (Single TIFF)
 For single image analysis, your folder should contain:
 ```
 your_data_folder/
