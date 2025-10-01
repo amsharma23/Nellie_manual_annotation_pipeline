@@ -126,18 +126,18 @@ The following keyboard shortcuts are available for network editing after visuali
 
 ## Node Color Coding
 
-- **Red**: Regular skeleton points
-- **Blue**: Tips (degree 1)
-- **Green**: Junctions (degree 3+)
-- **Magenta**: Degree 2 nodes
+- **<span style="color:red">Red</span>**: Regular skeleton points
+- **<span style="color:blue">Blue</span>**: Tips (degree 1)
+- **<span style="color:green">Green</span>**: Junctions (degree 3+)
+- **<span style="color:magenta">Magenta</span>**: Degree 2 nodes
 
 ### Dynamic Analysis Events
-- **Gold**: Tip-Edge fusion
-- **Dark Orange**: Junction-Breakage
-- **Purple**: Tip-Tip fusion
-- **Turquoise**: Tip-Tip fission
-- **Lime**: Extrusion
-- **Olive**: Retraction
+- **<span style="color:gold">Gold</span>**: Tip-Edge fusion
+- **<span style="color:darkorange">Dark Orange</span>**: Junction-Breakage
+- **<span style="color:purple">Purple</span>**: Tip-Tip fusion
+- **<span style="color:turquoise">Turquoise</span>**: Tip-Tip fission
+- **<span style="color:lime">Lime</span>**: Extrusion
+- **<span style="color:olive">Olive</span>**: Retraction
 
 ## Key Components
 
