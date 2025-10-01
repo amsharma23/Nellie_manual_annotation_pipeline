@@ -126,19 +126,10 @@ The following keyboard shortcuts are available for network editing after visuali
 
 ## Node Color Coding
 
-### In Skeleton View
-- **White/Gray**: Regular skeleton points
-- Varies based on degree after extraction
-
-### In Extracted Nodes View
-- **Blue**: Endpoints/Tips (degree 1)
-- **Red**: Junctions (degree 3+)
-- **Light Blue**: Other nodes (degree 2)
-
-### In Edge Coloring (Dynamics Analysis)
-- **Red**: Edges in mother region (or only region present)
-- **Green**: Edges in daughter region
-- **Yellow**: Edges connecting mother and daughter regions
+- **Red**: Regular skeleton points
+- **Blue**: Tips (degree 1)
+- **Green**: Junctions (degree 3+)
+- **Magenta**: Degree 2 nodes
 
 ## Key Components
 
