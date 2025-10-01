@@ -59,6 +59,7 @@ def network_click(widget):
             
                         if adjacency_path and edge_path:
                             widget.log_status(f"Network analysis complete. Files saved to:\n- {adjacency_path}\n- {edge_path}")
+                            widget.analyze_button.setEnabled(True)
     
     
     except Exception as e:
