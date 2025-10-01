@@ -113,6 +113,33 @@ your_timeseries_folder/
 4. **Manual Editing**: Use the topology modification tools to refine networks
 5. **Analyze Dynamics**: Study temporal changes using the dynamics analysis tools (Time Series only)
 
+## Keybindings
+
+The following keyboard shortcuts are available for network editing after visualization:
+
+| Key | Function | Requirements |
+|-----|----------|--------------|
+| **e** | Edit/Highlight connections | Select 1 node on skeleton layer |
+| **u** | Unsee/Clear highlighted connections | Previously highlighted node selected |
+| **j** | Join two nodes (add edge) | Select exactly 2 nodes on skeleton layer |
+| **r** | Remove edge between nodes | Select exactly 2 non-red nodes on skeleton layer |
+
+## Node Color Coding
+
+### In Skeleton View
+- **White/Gray**: Regular skeleton points
+- Varies based on degree after extraction
+
+### In Extracted Nodes View
+- **Blue**: Endpoints/Tips (degree 1)
+- **Red**: Junctions (degree 3+)
+- **Light Blue**: Other nodes (degree 2)
+
+### In Edge Coloring (Dynamics Analysis)
+- **Red**: Edges in mother region (or only region present)
+- **Green**: Edges in daughter region
+- **Yellow**: Edges connecting mother and daughter regions
+
 ## Key Components
 
 ### Main Application (`main.py`)
