@@ -4,14 +4,15 @@ from app_state import app_state
 from utils.parsing import get_float_pos_comma
 
 
-def highlight(viewer):
+def highlight(viewer,widget):
     
     #Extracted nodes dataframe and path
     nd_pdf = app_state.node_dataframe
     node_path = app_state.node_path
-
+    
     #indices of selected nodes and their positions
     if (len(list(viewer.layers[1].selected_data))==0):
+        widget.log_status("No node selected to edit.")
         return
     ind = list(viewer.layers[1].selected_data)[0]
     pos =(viewer.layers[1].data[ind])
@@ -27,7 +28,7 @@ def highlight(viewer):
     for eln,el in enumerate(node_ids):
         if el in connected_nodes:
             app_state.editable_node_positions.append(get_float_pos_comma(node_positions[eln]))
-
+    widget.log_status(f"Connected nodes found: {len(app_state.editable_node_positions)}")
     app_state.points_layer = viewer.add_points(
                                     app_state.editable_node_positions,
                                     size=5,

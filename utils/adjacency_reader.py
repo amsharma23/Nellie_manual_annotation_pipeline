@@ -18,6 +18,7 @@ def adjacency_to_extracted(extracted_csv_path,adjacency_path):
         ext_df={}
         
     # Parse adjacency strings and positions
+    node_id = adj_df['node'].tolist()
     adjs_list = adj_df['adjacencies'].tolist()
     pos_x = adj_df['pos_x'].tolist()
     pos_y = adj_df['pos_y'].tolist()
@@ -27,14 +28,15 @@ def adjacency_to_extracted(extracted_csv_path,adjacency_path):
     degrees = []
     positions = []
     neighbours = []
-
+    id = []
     for i_n, adj_str in enumerate(adjs_list):
         neighs = get_float_pos_comma(adj_str)
         if len(neighs) > 0:
+            id.append(node_id[i_n])
             degrees.append(len(neighs))
             positions.append([pos_z[i_n], pos_y[i_n], pos_x[i_n]])
             neighbours.append(neighs)
-
+    ext_df['Node ID'] = id
     ext_df['Degree of Node'] = degrees
     ext_df['Position(ZXY)'] = positions
     ext_df['Neighbour ID'] = neighbours
