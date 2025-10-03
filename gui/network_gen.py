@@ -12,7 +12,7 @@ def network_click(widget):
 
     try:
         if (app_state.folder_type == 'Single TIFF'):    
-            
+            widget.log_status(f"Starting network generation for single TIFF {app_state.nellie_output_path}")
             # Find pixel classification file
             tif_files = os.listdir(app_state.nellie_output_path)
             pixel_class_files = [f for f in tif_files if (f.endswith('im_pixel_class.ome.tif') or f.endswith('im_pixel_class.ome.tiff'))]
@@ -29,9 +29,9 @@ def network_click(widget):
             
             if adjacency_path and edge_path:
                 widget.log_status(f"Network analysis complete. Files saved to:\n- {adjacency_path}\n- {edge_path}")
-        
+                widget.analyze_dynamics_btn.setEnabled(True)
         elif app_state.folder_type == 'Time Series':
-                
+                widget.log_status(f"Starting network generation for time series in folder {app_state.loaded_folder}")
                 # Check if we have subfolders for each time point
                 subdirs = [d for d in os.listdir(app_state.loaded_folder) 
                           if os.path.isdir(os.path.join(app_state.loaded_folder, d))]
@@ -59,7 +59,7 @@ def network_click(widget):
             
                         if adjacency_path and edge_path:
                             widget.log_status(f"Network analysis complete. Files saved to:\n- {adjacency_path}\n- {edge_path}")
-                            widget.analyze_button.setEnabled(True)
+                            widget.analyze_dynamics_btn.setEnabled(True)
     
     
     except Exception as e:
