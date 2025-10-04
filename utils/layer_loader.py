@@ -54,8 +54,10 @@ def load_image_and_skeleton(nellie_output_path):
         # Check for node data file
         node_path_extracted = os.path.join(nellie_output_path, f"{basename}_extracted.csv")
         adjacency_path = os.path.join(nellie_output_path, f"{basename}_adjacency_list.csv")
-        app_state.node_path = node_path_extracted
-        
+        if os.path.exists(node_path_extracted):
+            app_state.node_path = node_path_extracted
+            app_state.node_dataframe = pd.read_csv(node_path_extracted) 
+
         # Load images
         raw_im = imread(raw_im_path)
         skel_im = imread(skel_im_path)

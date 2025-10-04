@@ -101,7 +101,7 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors):
     if positions and colors:
         app_state.points_layer = widget.viewer.add_points(
             positions,
-            size=5,
+            size=3,
             face_color=colors,
             scale=[1.765, 1, 1],
             name='Extracted Nodes'
@@ -121,7 +121,7 @@ def setup_key_bindings(widget, viewer):
         if len(list(viewer.layers[1].selected_data)) == 0:
             widget.log_status("No node selected to edit.")
             return
-        highlight(viewer)
+        highlight(viewer, widget)
         
     @viewer.bind_key('u')
     def unseen(viewer):

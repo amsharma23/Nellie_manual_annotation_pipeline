@@ -1,6 +1,7 @@
 import os
 from natsort import natsorted
 from app_state import app_state
+import pandas as pd
 from qtpy.QtWidgets import (
     QCheckBox, QComboBox, QFormLayout, QGroupBox, 
 QLabel, QPushButton, QSpinBox, QTextEdit, 
@@ -39,6 +40,7 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
                 app_state.nellie_output_path = os.path.join(file_path, 'nellie_output/nellie_necessities')
                 view_btn.setEnabled(True)
                 widget.log_status( f'{file_path} has a processed output already!')
+                app_state.node_dataframe = os.path.join(app_state.nellie_output_path, file.endswith('extracted.csv'))
         
         elif app_state.folder_type == 'Time Series':
 
@@ -75,6 +77,9 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
                                 check_skel = True
                             if file.endswith('extracted.csv'):
                                 check_extracted = True
+                                app_state.node_dataframe = pd.read_csv(
+                                    os.path.join(nellie_path, file)
+                                )
                             if file.endswith('multigraph.png') or file.endswith('multigraph.pdf'):
                                 check_multigraph_im = True
                             if file.endswith('adjacency_list.csv'):
