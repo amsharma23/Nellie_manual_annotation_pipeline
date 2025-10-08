@@ -206,7 +206,7 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
             divergence_1_2 = df_t1.iloc[idx2].get('divergence_raw', 0)
 
             # Use standard distance threshold for precise tip-tip fusion detection
-            if distance <= 2*distance_threshold and (divergence_1_1 < 0 and divergence_1_2 < 0):
+            if distance <= 2*distance_threshold and (divergence_1_1 > 0 and divergence_1_2 > 0):
                 events['tip_tip_fusion'].append({
                     'tip1_position': pos1,
                     'tip2_position': pos2,
@@ -214,7 +214,7 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                     'divergence_tip1': divergence_1_1,
                     'divergence_tip2': divergence_1_2,
                     'timepoint_1': df_t1.iloc[idx1].get('time_point', 'unknown'),
-                    'timepoint_2': df_t1.iloc[idx2].get('time_point', 'unknown')
+                    'timepoint_2': df_t1.iloc[idx2].get('time_point', 'unknown') + 1
                 })
 
     # 4. Tip-tip fission: two tips appear (edge splits)
@@ -233,18 +233,18 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
 
-            # Check for divergence in either tip (from t2 since they're appearing)
-            divergence_1 = df_t2.iloc[idx1].get('divergence_raw', 0)
-            divergence_2 = df_t2.iloc[idx2].get('divergence_raw', 0)
+            # Check for convergence in either tip (from t2 since they're appearing)
+            convergence_1 = df_t2.iloc[idx1].get('convergence_raw', 0)
+            convergence_2 = df_t2.iloc[idx2].get('convergence_raw', 0)
 
-            if distance <= distance_threshold * 2 and (divergence_1 > 0 or divergence_2 > 0):  # Allow larger threshold for fission
+            if distance <= distance_threshold * 2 and (convergence_1 > 0 or convergence_2 > 0):  # Allow larger threshold for fission
                 events['tip_tip_fission'].append({
                     'tip1_position': pos1,
                     'tip2_position': pos2,
                     'distance': distance,
-                    'divergence_tip1': divergence_1,
-                    'divergence_tip2': divergence_2,
-                    'timepoint_1': df_t2.iloc[idx1].get('time_point', 'unknown'),
+                    'divergence_tip1': convergence_1,
+                    'divergence_tip2': convergence_2,
+                    'timepoint_1': df_t2.iloc[idx1].get('time_point', 'unknown') - 1,
                     'timepoint_2': df_t2.iloc[idx2].get('time_point', 'unknown')
                 })
 
@@ -264,18 +264,18 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
 
-            # Check for divergence in tip or junction (from t2 since they're appearing)
-            divergence_tip = df_t2.iloc[tip_idx].get('divergence_raw', 0)
-            divergence_junction = df_t2.iloc[junction_idx].get('divergence_raw', 0)
+            # Check for convergence in tip or junction (from t2 since they're appearing)
+            convergence_tip = df_t2.iloc[tip_idx].get('convergence_raw', 0)
+            convergence_junction = df_t2.iloc[junction_idx].get('convergence_raw', 0)
 
-            if distance <= distance_threshold and (divergence_tip > 0 or divergence_junction > 0):
+            if distance <= distance_threshold and (convergence_tip < 0 or convergence_junction < 0):
                 events['extrusion'].append({
                     'tip_position': tip_pos,
                     'junction_position': junction_pos,
                     'distance': distance,
-                    'divergence_tip': divergence_tip,
-                    'divergence_junction': divergence_junction,
-                    'timepoint_1': df_t2.iloc[tip_idx].get('time_point', 'unknown'),
+                    'convergence_tip': convergence_tip,
+                    'convergence_junction': convergence_junction,
+                    'timepoint_1': df_t2.iloc[tip_idx].get('time_point', 'unknown') - 1,
                     'timepoint_2': df_t2.iloc[junction_idx].get('time_point', 'unknown')
                 })
 
@@ -299,7 +299,7 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
             divergence_tip = df_t1.iloc[tip_idx].get('divergence_raw', 0)
             divergence_junction = df_t1.iloc[junction_idx].get('divergence_raw', 0)
 
-            if distance <= distance_threshold and (divergence_tip < 0 or divergence_junction < 0):
+            if distance <= distance_threshold and (divergence_tip > 0 or divergence_junction > 0):
                 events['retraction'].append({
                     'tip_position': tip_pos,
                     'junction_position': junction_pos,
@@ -307,7 +307,7 @@ def classify_network_events(df_t1, df_t2, distance_threshold=5.0, z_scale: float
                     'divergence_tip': divergence_tip,
                     'divergence_junction': divergence_junction,
                     'timepoint_1': df_t1.iloc[tip_idx].get('time_point', 'unknown'),
-                    'timepoint_2': df_t1.iloc[junction_idx].get('time_point', 'unknown')
+                    'timepoint_2': df_t1.iloc[junction_idx].get('time_point', 'unknown') + 1
                 })
 
     return events

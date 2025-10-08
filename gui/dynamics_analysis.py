@@ -11,7 +11,7 @@ Dynamics analysis integration for the GUI.
 import os
 import pandas as pd
 from app_state import app_state
-from dynamics.timeseries_reader import read_timeseries_csvs
+from dynamics.timeseries_reader_with_dynamics import read_timeseries_csvs
 from dynamics.analyze_events import analyze_events_from_csv
 
 
@@ -37,7 +37,7 @@ def analyze_dynamics_clicked(widget):
 
     try:
         # Check if combined CSV already exists
-        combined_csv_path = os.path.join(app_state.loaded_folder, "combined_timeseries_adjacency.csv")
+        combined_csv_path = os.path.join(app_state.loaded_folder, "combined_timeseries_adjacency_with_dynamics.csv")
 
         if os.path.exists(combined_csv_path):
             widget.log_status(f"Found existing combined CSV: {combined_csv_path}")
