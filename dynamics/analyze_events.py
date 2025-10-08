@@ -10,7 +10,7 @@ Analyze fission/fusion events from combined timeseries adjacency CSV.
 
 import pandas as pd
 import os
-from .event_detector import analyze_timeseries_events
+from event_detector import analyze_timeseries_events
 
 
 def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None):
