@@ -53,13 +53,17 @@ def read_timeseries_csvs(base_folder: str) -> pd.DataFrame:
         # Look for adjacency list with dynamics CSV files
         dynamics_files = glob.glob(os.path.join(nellie_path, '*_adjacency_list_with_dynamics.csv'))
         adjacency_files = glob.glob(os.path.join(nellie_path, '*_adjacency_list.csv'))
-        if not dynamics_files:
+        if not dynamics_files and not adjacency_files:
             print(f"  No adjacency list with dynamics CSV found")
             continue
         elif len(dynamics_files) > 1:
             print(f"  Multiple dynamics CSVs found, using first: {dynamics_files[0]}")
 
-        csv_path = dynamics_files[0]
+        if dynamics_files:
+            csv_path = dynamics_files[0]
+        elif adjacency_files:
+            print(f"  No dynamics CSV found, falling back to adjacency list CSV")
+            csv_path = adjacency_files[0]
 
         # Read the CSV
         try:

@@ -172,7 +172,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                 
                 # Check if we have subfolders for each time point
                 subdirs = [d for d in os.listdir(app_state.loaded_folder) 
-                          if os.path.isdir(os.path.join(app_state.loaded_folder, d))]
+                          if os.path.isdir(os.path.join(app_state.loaded_folder, d)) and d.isdigit()]
                 
                 if subdirs:
                     

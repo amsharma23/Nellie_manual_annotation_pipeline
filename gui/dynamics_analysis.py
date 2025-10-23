@@ -50,7 +50,7 @@ def analyze_dynamics_clicked(widget):
             app_state.combined_timeseries_df = read_timeseries_csvs(app_state.loaded_folder)
 
             if app_state.combined_timeseries_df.empty:
-                widget.log_status("No time series data found in the selected folder.")
+                widget.log_status("No time series data found in " + app_state.loaded_folder)
                 return
 
             # Save the combined CSV for future use

@@ -46,8 +46,8 @@ def run_nellie_processing(im_path, num_t=None, remove_edges=False, ch=0):
         # Set dimension sizes (adjust these values based on your imaging parameters)
         # use change_dim_res to ensure FileInfo internal validation runs
         file_info.change_dim_res('Z', 0.23)
-        file_info.change_dim_res('Y', 0.073)
-        file_info.change_dim_res('X', 0.073)
+        file_info.change_dim_res('Y', 0.11)
+        file_info.change_dim_res('X', 0.11)
         file_info.change_dim_res('T', 0)
 
         # Ensure selected temporal range does not exceed actual frames

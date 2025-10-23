@@ -45,7 +45,7 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
         elif app_state.folder_type == 'Time Series':
 
             subdirs = [d for d in os.listdir(app_state.loaded_folder)
-                      if os.path.isdir(os.path.join(app_state.loaded_folder, d))]
+                      if os.path.isdir(os.path.join(app_state.loaded_folder, d)) and d.isdigit()]
 
             if subdirs:
 
