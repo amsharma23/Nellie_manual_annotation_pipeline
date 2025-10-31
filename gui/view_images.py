@@ -5,7 +5,7 @@ from natsort import natsorted
 from modifying_topology.edit_node import highlight
 from modifying_topology.add_edge import join
 from modifying_topology.remove_edge import remove
-from modifying_topology.insert_node import insert_node_at_cursor
+from modifying_topology.insert_node import insert_node_at_cursor, toggle_preview_mode, toggle_z_lock
 from qtpy.QtWidgets import (
     QCheckBox, QComboBox, QFormLayout, QGroupBox, 
 QLabel, QPushButton, QSpinBox, QTextEdit, 
@@ -214,6 +214,14 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                     @viewer.bind_key('i')
                     def insert_node(viewer):
                         insert_node_at_cursor(viewer, widget)
+
+                    @viewer.bind_key('v')
+                    def toggle_preview(viewer):
+                        toggle_preview_mode(viewer, widget)
+
+                    @viewer.bind_key('z')
+                    def toggle_z_plane_lock(viewer):
+                        toggle_z_lock(viewer, widget)
 
                     widget.log_status("Visualization loaded successfully")
                     
@@ -433,6 +441,14 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             @viewer.bind_key('i')
                             def insert_node(viewer):
                                 insert_node_at_cursor(viewer, widget)
+
+                            @viewer.bind_key('v')
+                            def toggle_preview(viewer):
+                                toggle_preview_mode(viewer, widget)
+
+                            @viewer.bind_key('z')
+                            def toggle_z_plane_lock(viewer):
+                                toggle_z_lock(viewer, widget)
 
                             widget.log_status(f"Visualization loaded successfully. Found {num_images} image sets.")
                             network_btn.setEnabled(True)
