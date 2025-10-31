@@ -26,14 +26,14 @@ def find_nearest_skeleton_point(cursor_pos, skeleton_layer):
         skeleton_layer: Napari shapes layer containing skeleton (unused)
 
     Returns:
-        numpy.ndarray: Cursor position [z, y, x] with locked Z if enabled
+        numpy.ndarray: Cursor position [z, y, x] with locked Z if enabled (as integers)
     """
-    # Round cursor position to reasonable precision
-    position = np.round(cursor_pos, decimals=2).astype(float)
+    # Round cursor position to integers
+    position = np.round(cursor_pos).astype(int)
 
     # If Z is locked, replace Z coordinate with locked value
     if z_lock_state['locked'] and z_lock_state['z_value'] is not None:
-        position[0] = z_lock_state['z_value']
+        position[0] = int(np.round(z_lock_state['z_value']))
 
     return position
 
@@ -142,13 +142,13 @@ def toggle_z_lock(viewer, widget):
         # Capture current Z position
         cursor_pos = viewer.cursor.position
         if cursor_pos is not None and len(cursor_pos) >= 3:
-            z_value = np.round(cursor_pos[-3], decimals=2)
+            z_value = int(np.round(cursor_pos[-3]))
             z_lock_state['z_value'] = z_value
-            widget.log_status(f"Z-plane LOCKED at Z={z_value:.2f}")
+            widget.log_status(f"Z-plane LOCKED at Z={z_value}")
         else:
             # Fallback if no cursor position
-            z_lock_state['z_value'] = 0.0
-            widget.log_status("Z-plane LOCKED at Z=0.00")
+            z_lock_state['z_value'] = 0
+            widget.log_status("Z-plane LOCKED at Z=0")
     else:
         # Disable Z-lock
         z_lock_state['locked'] = False
@@ -217,7 +217,8 @@ def insert_node_at_cursor(viewer, widget):
     new_node_id = max_node_id + 1
     nd_pdf.loc[insert_loc, 'Node ID'] = new_node_id
     nd_pdf.loc[insert_loc, 'Degree of Node'] = 0  # Isolated node
-    nd_pdf.loc[insert_loc, 'Position(ZXY)'] = str(list(snapped_pos))
+    # Convert to list of Python ints for consistent formatting
+    nd_pdf.loc[insert_loc, 'Position(ZXY)'] = str([int(x) for x in snapped_pos])
     nd_pdf.loc[insert_loc, 'Neighbour ID'] = '[]'  # No neighbors initially
 
     # Update app state

@@ -219,7 +219,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                     def toggle_preview(viewer):
                         toggle_preview_mode(viewer, widget)
 
-                    @viewer.bind_key('z')
+                    @viewer.bind_key('l')
                     def toggle_z_plane_lock(viewer):
                         toggle_z_lock(viewer, widget)
 
@@ -446,7 +446,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             def toggle_preview(viewer):
                                 toggle_preview_mode(viewer, widget)
 
-                            @viewer.bind_key('z')
+                            @viewer.bind_key('l')
                             def toggle_z_plane_lock(viewer):
                                 toggle_z_lock(viewer, widget)
 

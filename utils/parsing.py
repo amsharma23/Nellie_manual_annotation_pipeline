@@ -9,10 +9,10 @@ import re
 
 def get_float_pos_comma(st):
     """Parse string representation of position to get coordinates.
-    
+
     Args:
         st (str): String containing position coordinates
-        
+
     Returns:
         list: List of integer coordinates
     """

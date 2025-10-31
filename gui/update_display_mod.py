@@ -208,7 +208,7 @@ def setup_key_bindings(widget, viewer):
     def toggle_preview(viewer):
         toggle_preview_mode(viewer, widget)
 
-    @viewer.bind_key('z')
+    @viewer.bind_key('l')
     def toggle_z_plane_lock(viewer):
         toggle_z_lock(viewer, widget)
 
