@@ -31,24 +31,48 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                 viewer.layers.clear()
                 
                 # Load images
-                raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
-                
+                raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(app_state.nellie_output_path)
+
                 if raw_im is not None and skel_im is not None:
                     network_btn.setEnabled(True)
                     # Add layers to viewer
                     app_state.raw_layer = widget.viewer.add_image(
-                        raw_im, 
+                        raw_im,
                         scale=[1.765, 1, 1],  # Z, Y, X scaling
                         name='Raw Image'
                     )
-                    
-                    app_state.skeleton_layer = widget.viewer.add_points(
-                        skel_im,
-                        size=3,
-                        face_color=face_colors,
-                        scale=[1.765, 1, 1],
-                        name='Skeleton'
-                    )
+
+                    # Add skeleton edges as Shapes layer (lines between connected nodes)
+                    if edge_lines:
+                        app_state.skeleton_layer = widget.viewer.add_shapes(
+                            edge_lines,
+                            shape_type='path',
+                            edge_width=0.2,
+                            edge_color='red',
+                            face_color='transparent',
+                            scale=[1.765, 1, 1],
+                            name='Skeleton Edges'
+                        )
+                    else:
+                        # Add skeleton edges as Shapes layer
+                        if edge_lines:
+                            app_state.skeleton_layer = widget.viewer.add_shapes(
+                                edge_lines,
+                                shape_type='path',
+                                edge_width=0.2,
+                                edge_color='red',
+                                face_color='transparent',
+                                scale=[1.765, 1, 1],
+                                name='Skeleton Edges'
+                            )
+                        else:
+                            app_state.skeleton_layer = widget.viewer.add_points(
+                                skel_im,
+                                size=3,
+                                face_color=face_colors,
+                                scale=[1.765, 1, 1],
+                                name='Skeleton'
+                            )
                     
                     # Add extracted points if available
                     if positions and colors:
@@ -88,24 +112,36 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                         # Clear existing layers
                         widget.viewer.layers.clear()
                 
-                        raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
-                
+                        raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(app_state.nellie_output_path)
+
                         if raw_im is not None and skel_im is not None:
-                            
+
                             # Add layers to viewer
                             app_state.raw_layer = widget.viewer.add_image(
-                                raw_im, 
+                                raw_im,
                                 scale=[1.765, 1, 1],  # Z, Y, X scaling
                                 name='Raw Image'
                             )
-                            
-                            app_state.skeleton_layer = widget.viewer.add_points(
-                                skel_im,
-                                size=3,
-                                face_color=face_colors,
-                                scale=[1.765, 1, 1],
-                                name='Skeleton'
-                            )
+
+                            # Add skeleton edges as Shapes layer
+                            if edge_lines:
+                                app_state.skeleton_layer = widget.viewer.add_shapes(
+                                    edge_lines,
+                                    shape_type='path',
+                                    edge_width=0.2,
+                                    edge_color='red',
+                                    face_color='transparent',
+                                    scale=[1.765, 1, 1],
+                                    name='Skeleton Edges'
+                                )
+                            else:
+                                app_state.skeleton_layer = widget.viewer.add_points(
+                                    skel_im,
+                                    size=3,
+                                    face_color=face_colors,
+                                    scale=[1.765, 1, 1],
+                                    name='Skeleton'
+                                )
                             
                             # Add extracted points if available
                             if positions and colors:
@@ -131,7 +167,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                         # Clear existing layers
                         widget.viewer.layers.clear()
                 
-                        raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
+                        raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(app_state.nellie_output_path)
                 
                         if raw_im is not None and skel_im is not None:
                             network_btn.setEnabled(True)
@@ -142,13 +178,25 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 name='Raw Image'
                             )
                             
-                            app_state.skeleton_layer = widget.viewer.add_points(
-                                skel_im,
-                                size=3,
-                                face_color=face_colors,
-                                scale=[1.765, 1, 1],
-                                name='Skeleton'
-                            )
+                            # Add skeleton edges as Shapes layer
+                            if edge_lines:
+                                app_state.skeleton_layer = widget.viewer.add_shapes(
+                                    edge_lines,
+                                    shape_type='path',
+                                    edge_width=0.2,
+                                    edge_color='red',
+                                    face_color='transparent',
+                                    scale=[1.765, 1, 1],
+                                    name='Skeleton Edges'
+                                )
+                            else:
+                                app_state.skeleton_layer = widget.viewer.add_points(
+                                    skel_im,
+                                    size=3,
+                                    face_color=face_colors,
+                                    scale=[1.765, 1, 1],
+                                    name='Skeleton'
+                                )
                             
                             # Add extracted points if available
                             if positions and colors:
@@ -228,7 +276,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                     else:
 
                         # Fallback to original method if no image sets were found
-                        raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
+                        raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(app_state.nellie_output_path)
                         
                         if raw_im is not None and skel_im is not None:
                             
@@ -239,13 +287,25 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 name='Raw Image'
                             )
                             
-                            app_state.skeleton_layer = widget.viewer.add_points(
-                                skel_im,
-                                size=3,
-                                face_color=face_colors,
-                                scale=[1.765, 1, 1],
-                                name='Skeleton'
-                            )
+                            # Add skeleton edges as Shapes layer
+                            if edge_lines:
+                                app_state.skeleton_layer = widget.viewer.add_shapes(
+                                    edge_lines,
+                                    shape_type='path',
+                                    edge_width=0.2,
+                                    edge_color='red',
+                                    face_color='transparent',
+                                    scale=[1.765, 1, 1],
+                                    name='Skeleton Edges'
+                                )
+                            else:
+                                app_state.skeleton_layer = widget.viewer.add_points(
+                                    skel_im,
+                                    size=3,
+                                    face_color=face_colors,
+                                    scale=[1.765, 1, 1],
+                                    name='Skeleton'
+                                )
                             
                             # Add extracted points if available
                             if positions and colors:
@@ -279,7 +339,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     # Clear existing layers
                                     viewer.layers.clear()
                 
-                                    raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
+                                    raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(app_state.nellie_output_path)
                 
                                     if raw_im is not None and skel_im is not None:
                             
@@ -290,13 +350,25 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                                             name='Raw Image'
                                                             )
                                     
-                                    app_state.skeleton_layer = widget.viewer.add_points(
-                                        skel_im,
-                                        size=3,
-                                        face_color=face_colors,
-                                        scale=[1.765, 1, 1],
-                                        name='Skeleton'
-                                    )
+                                    # Add skeleton edges as Shapes layer
+                                    if edge_lines:
+                                        app_state.skeleton_layer = widget.viewer.add_shapes(
+                                            edge_lines,
+                                            shape_type='path',
+                                            edge_width=0.2,
+                                            edge_color='red',
+                                            face_color='transparent',
+                                            scale=[1.765, 1, 1],
+                                            name='Skeleton Edges'
+                                        )
+                                    else:
+                                        app_state.skeleton_layer = widget.viewer.add_points(
+                                            skel_im,
+                                            size=3,
+                                            face_color=face_colors,
+                                            scale=[1.765, 1, 1],
+                                            name='Skeleton'
+                                        )
                                     
                                     # Add extracted points if available
                                     if positions and colors:
@@ -322,7 +394,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 # Clear existing layers
                                 viewer.layers.clear()
                 
-                                raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(app_state.nellie_output_path)
+                                raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(app_state.nellie_output_path)
             
                                 if raw_im is not None and skel_im is not None:
                         

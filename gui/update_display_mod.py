@@ -71,33 +71,45 @@ def reload_visualization_with_state_preservation(widget):
 def reload_visualization(widget):
     """Reload the visualization after modifications"""
     widget.viewer.layers.clear()
-    raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(
+    raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(
         app_state.nellie_output_path
     )
 
     if raw_im is not None and skel_im is not None:
-        add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors)
+        add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, edge_lines)
 
 
-def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors):
+def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, edge_lines):
     """Helper method to add layers to viewer"""
     # Add raw image layer
     app_state.raw_layer = widget.viewer.add_image(
-        raw_im, 
+        raw_im,
         scale=[1.765, 1, 1],
         name='Raw Image'
     )
-    
-    # Add skeleton layer
-    app_state.skeleton_layer = widget.viewer.add_points(
-        skel_im,
-        size=3,
-        face_color=face_colors,
-        scale=[1.765, 1, 1],
-        name='Skeleton'
-    )
-    
-    # Add extracted points if available
+
+    # Add skeleton edges as Shapes layer (lines between connected nodes)
+    if edge_lines:
+        app_state.skeleton_layer = widget.viewer.add_shapes(
+            edge_lines,
+            shape_type='path',
+            edge_width=0.2,
+            edge_color='red',
+            face_color='transparent',
+            scale=[1.765, 1, 1],
+            name='Skeleton Edges'
+        )
+    else:
+        # Fallback to point-based skeleton if no edges available
+        app_state.skeleton_layer = widget.viewer.add_points(
+            skel_im,
+            size=3,
+            face_color=face_colors,
+            scale=[1.765, 1, 1],
+            name='Skeleton'
+        )
+
+    # Add extracted nodes if available
     if positions and colors:
         app_state.points_layer = widget.viewer.add_points(
             positions,
@@ -196,16 +208,16 @@ def update_image(widget, viewer, current, index):
                     viewer_state.capture_state(widget.viewer)
 
                 # Load images
-                raw_im, skel_im, face_colors, positions, colors = load_image_and_skeleton(
+                raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(
                     app_state.nellie_output_path
                 )
-                
+
                 # Clear existing layers
                 widget.viewer.layers.clear()
-                
+
                 if raw_im is not None and skel_im is not None:
                     # Add layers to viewer
-                    add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors)
+                    add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, edge_lines)
                     
                     # Restore viewer state after loading new image
                     viewer_state.restore_state(widget.viewer)

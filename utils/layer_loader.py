@@ -14,15 +14,160 @@ from app_state import app_state
 import numpy as np
 from .parsing import get_float_pos_comma
 import glob
+import ast
+from collections import deque
+
+
+def trace_skeleton_path(start_pos, end_pos, skeleton_coords):
+    """Trace the path along skeleton voxels from start to end position using BFS.
+
+    Args:
+        start_pos: Starting position [z, y, x] - already on skeleton (integer coordinates)
+        end_pos: Ending position [z, y, x] - already on skeleton (integer coordinates)
+        skeleton_coords: All skeleton voxel coordinates as numpy array
+
+    Returns:
+        List of positions forming the path, or straight line if no path found
+    """
+    try:
+        # Convert positions to tuples (they're already exact skeleton coordinates)
+        start_voxel = tuple(np.round(start_pos).astype(int))
+        end_voxel = tuple(np.round(end_pos).astype(int))
+
+        # If start and end are the same or very close, return simple path
+        if start_voxel == end_voxel or np.linalg.norm(np.array(start_pos) - np.array(end_pos)) < 2:
+            return [list(start_pos), list(end_pos)]
+
+        # Create set of skeleton voxels for fast lookup
+        skeleton_set = set(map(tuple, skeleton_coords.tolist()))
+
+        # BFS to find path
+        queue = deque([(start_voxel, [start_voxel])])
+        visited = {start_voxel}
+
+        # 26-connectivity offsets for 3D
+        neighbors_26 = [
+            (dz, dy, dx)
+            for dz in [-1, 0, 1]
+            for dy in [-1, 0, 1]
+            for dx in [-1, 0, 1]
+            if not (dz == 0 and dy == 0 and dx == 0)
+        ]
+
+        max_iterations = min(10000, len(skeleton_coords))  # Prevent infinite loops
+        iterations = 0
+
+        while queue and iterations < max_iterations:
+            iterations += 1
+            current, path = queue.popleft()
+
+            # Check if we reached the end
+            if current == end_voxel:
+                # Convert path to list of lists for Napari
+                return [list(pos) for pos in path]
+
+            # Explore neighbors
+            for offset in neighbors_26:
+                neighbor = (
+                    current[0] + offset[0],
+                    current[1] + offset[1],
+                    current[2] + offset[2]
+                )
+
+                if neighbor in skeleton_set and neighbor not in visited:
+                    visited.add(neighbor)
+                    new_path = path + [neighbor]
+
+                    # Heuristic: prioritize paths going toward the end
+                    queue.append((neighbor, new_path))
+
+        # If no path found, return straight line
+        return [list(start_pos), list(end_pos)]
+
+    except Exception as e:
+        # Fallback to straight line on any error
+        return [list(start_pos), list(end_pos)]
+
+
+def generate_edge_lines(node_df, skeleton_coords=None):
+    """Generate line segments for edges between connected nodes.
+
+    Args:
+        node_df (DataFrame): DataFrame with columns 'Position(ZXY)' and 'Neighbour ID'
+                            Node positions are exact skeleton voxel coordinates (integers)
+        skeleton_coords (numpy.ndarray): All skeleton voxel coordinates for path tracing
+
+    Returns:
+        list: List of line segments, each as a path of coordinates following skeleton curvature
+    """
+    edge_lines = []
+    processed_edges = set()
+
+    if node_df.empty:
+        return edge_lines
+
+    # Create a mapping from node ID to position
+    node_id_to_pos = {}
+    for idx, row in node_df.iterrows():
+        node_id = row['Node ID']
+        pos_str = row['Position(ZXY)']
+        pos = get_float_pos_comma(pos_str)
+        node_id_to_pos[node_id] = pos
+
+    # Determine if we should trace paths or use straight lines
+    use_path_tracing = skeleton_coords is not None and len(skeleton_coords) > 0
+
+    # Generate edges
+    for idx, row in node_df.iterrows():
+        node_id = row['Node ID']
+        pos = node_id_to_pos[node_id]
+
+        # Parse neighbor IDs
+        neighbor_str = str(row['Neighbour ID'])
+        if neighbor_str == 'nan' or neighbor_str == '[]':
+            continue
+
+        try:
+            neighbor_ids = ast.literal_eval(neighbor_str)
+            if not isinstance(neighbor_ids, list):
+                neighbor_ids = [neighbor_ids]
+        except:
+            continue
+
+        # Create edges to neighbors
+        for neighbor_id in neighbor_ids:
+            # Create unique edge identifier (sorted to avoid duplicates)
+            edge_id = tuple(sorted([node_id, neighbor_id]))
+
+            # Skip if edge already processed
+            if edge_id in processed_edges:
+                continue
+
+            # Get neighbor position
+            if neighbor_id in node_id_to_pos:
+                neighbor_pos = node_id_to_pos[neighbor_id]
+
+                # Trace path along skeleton if available
+                if use_path_tracing:
+                    path = trace_skeleton_path(pos, neighbor_pos, skeleton_coords)
+                    edge_lines.append(path)
+                else:
+                    # Fallback to straight line
+                    edge_lines.append([pos, neighbor_pos])
+
+                processed_edges.add(edge_id)
+
+    return edge_lines
+
 
 def load_image_and_skeleton(nellie_output_path):
     """Load raw image and skeleton from Nellie output directory.
-    
+
     Args:
         nellie_output_path (str): Path to Nellie output directory
-        
+
     Returns:
-        tuple: (raw_image, skeleton_image, face_colors, positions, colors)
+        tuple: (raw_image, skeleton_image, face_colors, positions, colors, edge_lines)
     """
     try:
         # Find relevant files in the output directory
@@ -32,7 +177,7 @@ def load_image_and_skeleton(nellie_output_path):
         raw_files = [f for f in tif_files if f.endswith('-ch0.ome.tif')]
         if not raw_files:
             show_error("No raw image file found in the output directory: " + nellie_output_path)
-            return None, None, [], [], []
+            return None, None, [], [], [], []
             
         raw_file = raw_files[0]
         basename = raw_file.split(".")[0]
@@ -41,7 +186,7 @@ def load_image_and_skeleton(nellie_output_path):
         skel_files = [f for f in tif_files if f.endswith('-ch0-im_pixel_class.ome.tif')]
         if not skel_files:
             show_error("No skeleton file found in the output directory")
-            return None, None, [], [], []
+            return None, None, [], [], [], []
         else:
             app_state.nellie_output_path = nellie_output_path
             
@@ -122,7 +267,7 @@ def load_image_and_skeleton(nellie_output_path):
                         colors.append('magenta')  
                     else:
                         colors.append('green')  # Junction nodes
-                #Map skeleton points to node colors if they match positions   
+                #Map skeleton points to node colors if they match positions
                 position_color_map = {}
                 for i,pos in enumerate(positions):
                     position_color_map[tuple(pos)] = colors[i]
@@ -132,22 +277,26 @@ def load_image_and_skeleton(nellie_output_path):
                     if point_tuple in position_color_map:
                         face_color_arr[i] = position_color_map[point_tuple]
 
-                return raw_im, skel_im, face_color_arr, positions, colors
+                # Generate edge lines from node connectivity with path tracing
+                # Pass skeleton coordinates for curved path tracing
+                edge_lines = generate_edge_lines(node_df, skeleton_coords=skel_im)
+
+                return raw_im, skel_im, face_color_arr, positions, colors, edge_lines
                 
             else:
                 # Create empty dataframe if no data
                 app_state.node_dataframe = pd.DataFrame(columns=['Node ID','Degree of Node', 'Position(ZXY)'])
                 app_state.node_dataframe.to_csv(node_path_extracted, index=False)
-                return raw_im, skel_im, face_color_arr, [], []
+                return raw_im, skel_im, face_color_arr, [], [], []
         else:
             # Create new node file if none exists
             app_state.node_dataframe = pd.DataFrame(columns=['Node ID','Degree of Node', 'Position(ZXY)'])
             app_state.node_dataframe.to_csv(node_path_extracted, index=False)
-            return raw_im, skel_im, face_color_arr, [], []
-            
+            return raw_im, skel_im, face_color_arr, [], [], []
+
     except Exception as e:
         show_error(f"Error loading image and skeleton: {str(e)}")
-        return None, None, [], [], []
+        return None, None, [], [], [], []
 
 
 def load_dynamics_events_layer(viewer, current_timepoint=None):
