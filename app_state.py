@@ -33,5 +33,7 @@ class AppState:
         self.combined_timeseries_df = None
         self.dynamics_events = None
         self.dynamics_analysis_results = None
+        # Skeleton coordinates for point insertion
+        self.skeleton_coords = None
 
 app_state = AppState()

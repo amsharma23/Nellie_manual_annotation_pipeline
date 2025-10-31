@@ -207,7 +207,10 @@ def load_image_and_skeleton(nellie_output_path):
         raw_im = imread(raw_im_path)
         skel_im = imread(skel_im_path)
         skel_im = np.transpose(np.nonzero(skel_im))
-        
+
+        # Store skeleton coordinates in app_state for point insertion
+        app_state.skeleton_coords = skel_im
+
         # Default all points to red
         face_color_arr = ['red' for _ in range(len(skel_im))]
         

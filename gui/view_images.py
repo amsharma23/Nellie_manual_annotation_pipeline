@@ -2,9 +2,10 @@ from app_state import app_state
 from utils.layer_loader import load_image_and_skeleton
 import os
 from natsort import natsorted
-from modifying_topology.edit_node import highlight  
+from modifying_topology.edit_node import highlight
 from modifying_topology.add_edge import join
 from modifying_topology.remove_edge import remove
+from modifying_topology.insert_node import insert_node_at_cursor
 from qtpy.QtWidgets import (
     QCheckBox, QComboBox, QFormLayout, QGroupBox, 
 QLabel, QPushButton, QSpinBox, QTextEdit, 
@@ -209,6 +210,10 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 )
                             widget.log_status("Broke Nodes sucessfully")
                             return
+
+                    @viewer.bind_key('i')
+                    def insert_node(viewer):
+                        insert_node_at_cursor(viewer, widget)
 
                     widget.log_status("Visualization loaded successfully")
                     
@@ -422,8 +427,13 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                         scale=[1.765, 1, 1],
                                         name='Extracted Nodes'
                                     )
-                                widget.log_status("Broke Nodes sucessfully")                                
+                                widget.log_status("Broke Nodes sucessfully")
                                 return
+
+                            @viewer.bind_key('i')
+                            def insert_node(viewer):
+                                insert_node_at_cursor(viewer, widget)
+
                             widget.log_status(f"Visualization loaded successfully. Found {num_images} image sets.")
                             network_btn.setEnabled(True)
                     
