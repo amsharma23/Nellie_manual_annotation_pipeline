@@ -10,19 +10,27 @@ def remove(viewer)->bool:
     #Extracted nodes dataframe and path
     nd_pdf = app_state.node_dataframe
     node_path = app_state.node_path
+
+    # Get Extracted Nodes layer by name
+    if 'Extracted Nodes' not in viewer.layers:
+        print("Extracted Nodes layer not found.")
+        flag = True
+        return flag
+    extracted_layer = viewer.layers['Extracted Nodes']
+
     #Find connected nodes if any
     node_ids = nd_pdf['Node ID'].tolist()
     node_positions = nd_pdf['Position(ZXY)'].tolist()
     node_positions_fl = [get_float_pos_comma(st) for st in node_positions]
 
     #indices of selected nodes and their positions
-    if (len(list(viewer.layers[1].selected_data))!=2):
+    if (len(list(extracted_layer.selected_data))!=2):
         flag = True
         return flag
-    ind_0 = list(viewer.layers[1].selected_data)[0]
-    ind_1 = list(viewer.layers[1].selected_data)[1]
-    pos_0 =list((viewer.layers[1].data[ind_0]))
-    pos_1 =list((viewer.layers[1].data[ind_1]))
+    ind_0 = list(extracted_layer.selected_data)[0]
+    ind_1 = list(extracted_layer.selected_data)[1]
+    pos_0 =list((extracted_layer.data[ind_0]))
+    pos_1 =list((extracted_layer.data[ind_1]))
     
     check_ind_0 = False
     check_ind_1 = False

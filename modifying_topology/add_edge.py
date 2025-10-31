@@ -5,10 +5,18 @@ from utils.parsing import get_float_pos_comma
 
 
 def join(viewer,node_ind_0=None,node_ind_1=None,from_remove=False):
-    
+
     #Extracted nodes dataframe and path
     nd_pdf = app_state.node_dataframe
     node_path = app_state.node_path
+
+    # Get Extracted Nodes layer by name
+    if 'Extracted Nodes' not in viewer.layers and not from_remove:
+        print("Extracted Nodes layer not found.")
+        return
+    if not from_remove:
+        extracted_layer = viewer.layers['Extracted Nodes']
+
     #Find connected nodes if any
     node_positions = nd_pdf['Position(ZXY)'].tolist()
     node_positions_fl = [get_float_pos_comma(st) for st in node_positions]
@@ -17,17 +25,17 @@ def join(viewer,node_ind_0=None,node_ind_1=None,from_remove=False):
     max_node_id = max(node_ids)
     check_ind_0 = False
     check_ind_1 = False
-    
+
     #indices of selected nodes and their positions
-    if (len(list(viewer.layers[1].selected_data))!=2) and not from_remove:
+    if not from_remove and (len(list(extracted_layer.selected_data))!=2):
         print('here1')
         return
-    
+
     if not from_remove:
-        ind_0 = list(viewer.layers[1].selected_data)[0]
-        ind_1 = list(viewer.layers[1].selected_data)[1]
-        pos_0 =(viewer.layers[1].data[ind_0])
-        pos_1 =(viewer.layers[1].data[ind_1])
+        ind_0 = list(extracted_layer.selected_data)[0]
+        ind_1 = list(extracted_layer.selected_data)[1]
+        pos_0 =(extracted_layer.data[ind_0])
+        pos_1 =(extracted_layer.data[ind_1])
    
         
         for posts in node_positions_fl:

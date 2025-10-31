@@ -5,17 +5,23 @@ from utils.parsing import get_float_pos_comma
 
 
 def highlight(viewer,widget):
-    
+
     #Extracted nodes dataframe and path
     nd_pdf = app_state.node_dataframe
     node_path = app_state.node_path
-    
+
+    # Get Extracted Nodes layer by name
+    if 'Extracted Nodes' not in viewer.layers:
+        widget.log_status("Extracted Nodes layer not found.")
+        return
+    extracted_layer = viewer.layers['Extracted Nodes']
+
     #indices of selected nodes and their positions
-    if (len(list(viewer.layers[1].selected_data))==0):
+    if (len(list(extracted_layer.selected_data))==0):
         widget.log_status("No node selected to edit.")
         return
-    ind = list(viewer.layers[1].selected_data)[0]
-    pos =(viewer.layers[1].data[ind])
+    ind = list(extracted_layer.selected_data)[0]
+    pos =(extracted_layer.data[ind])
     app_state.selected_node_position = pos    
     
     #Find connected nodes if any

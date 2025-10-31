@@ -127,49 +127,73 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, ed
 
 def setup_key_bindings(widget, viewer):
     """Setup key bindings for the viewer"""
-    
+
     @viewer.bind_key('e')
     def edit(viewer):
-        if len(list(viewer.layers[1].selected_data)) == 0:
+        # Get Extracted Nodes layer by name
+        if 'Extracted Nodes' not in viewer.layers:
+            widget.log_status("Extracted Nodes layer not found.")
+            return
+        extracted_layer = viewer.layers['Extracted Nodes']
+
+        if len(list(extracted_layer.selected_data)) == 0:
             widget.log_status("No node selected to edit.")
             return
         highlight(viewer, widget)
-        
+
     @viewer.bind_key('u')
     def unseen(viewer):
-        if len(list(viewer.layers[1].selected_data)) == 0:
+        # Get Extracted Nodes layer by name
+        if 'Extracted Nodes' not in viewer.layers:
+            widget.log_status("Extracted Nodes layer not found.")
+            return
+        extracted_layer = viewer.layers['Extracted Nodes']
+
+        if len(list(extracted_layer.selected_data)) == 0:
             widget.log_status("No node selected to edit.")
             return
         if 'Connected Nodes' in [layer.name for layer in viewer.layers]:
             viewer.layers.remove('Connected Nodes')
         app_state.editable_node_positions = []
         app_state.selected_node_position = []
-        
+
     @viewer.bind_key('j')
     def join_points(viewer):
-        if len(list(viewer.layers[1].selected_data)) != 2:
+        # Get Extracted Nodes layer by name
+        if 'Extracted Nodes' not in viewer.layers:
+            widget.log_status("Extracted Nodes layer not found.")
+            return
+        extracted_layer = viewer.layers['Extracted Nodes']
+
+        if len(list(extracted_layer.selected_data)) != 2:
             widget.log_status("Need to select exactly 2 nodes to join.")
             return
-        
+
         try:
             join(viewer)
             reload_visualization_with_state_preservation(widget)
             widget.log_status("Joined Nodes successfully")
         except Exception as e:
             widget.log_status(f"Error joining nodes: {str(e)}")
-            
+
     @viewer.bind_key('r')
     def remove_edge(viewer):
-        if len(list(viewer.layers[1].selected_data)) != 2:
-            widget.log_status("Need to select exactly 2 nodes to remove on the skeleton layer.")
+        # Get Extracted Nodes layer by name
+        if 'Extracted Nodes' not in viewer.layers:
+            widget.log_status("Extracted Nodes layer not found.")
             return
-            
+        extracted_layer = viewer.layers['Extracted Nodes']
+
+        if len(list(extracted_layer.selected_data)) != 2:
+            widget.log_status("Need to select exactly 2 nodes to remove.")
+            return
+
         try:
             flag = remove(viewer)
             if flag:
-                widget.log_status("Need to select exactly 2 nodes that are BOTH NOT RED to remove on the skeleton layer.")
+                widget.log_status("Need to select exactly 2 connected extracted nodes to remove.")
                 return
-            
+
             reload_visualization_with_state_preservation(widget)
             widget.log_status("Broke Nodes successfully")
         except Exception as e:
