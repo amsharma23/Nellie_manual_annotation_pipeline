@@ -7,6 +7,7 @@ from modifying_topology.add_edge import join
 from tifffile import imread
 from modifying_topology.remove_edge import remove
 from modifying_topology.insert_node import insert_node_at_cursor, toggle_preview_mode, toggle_z_lock
+from modifying_topology.remove_node import remove_node
 import numpy as np
 
 from qtpy.QtWidgets import (
@@ -211,6 +212,10 @@ def setup_key_bindings(widget, viewer):
     @viewer.bind_key('l')
     def toggle_z_plane_lock(viewer):
         toggle_z_lock(viewer, widget)
+
+    @viewer.bind_key('x')
+    def remove_node_key(viewer):
+        remove_node(viewer, widget)
 
 
 def update_image(widget, viewer, current, index):

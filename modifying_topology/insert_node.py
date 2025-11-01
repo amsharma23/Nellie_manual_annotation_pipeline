@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from app_state import app_state
+from utils.layer_loader import load_image_and_skeleton
 
 
 # Preview state tracking
@@ -227,18 +228,49 @@ def insert_node_at_cursor(viewer, widget):
     # Save to CSV
     nd_pdf.to_csv(node_path, index=False)
 
-    # Update Extracted Nodes layer
-    current_data = extracted_layer.data
-    if len(current_data) > 0:
-        new_data = np.vstack([current_data, snapped_pos])
-    else:
-        new_data = np.array([snapped_pos])
+    # Reload visualization to show updated network properly
+    viewer.layers.clear()
 
-    extracted_layer.data = new_data
+    raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(
+        app_state.nellie_output_path
+    )
 
-    # Update colors (degree 0 = white)
-    current_colors = list(extracted_layer.face_color)
-    current_colors.append('white')
-    extracted_layer.face_color = current_colors
+    if raw_im is not None and skel_im is not None:
+        # Add raw image layer
+        app_state.raw_layer = viewer.add_image(
+            raw_im,
+            scale=[1.765, 1, 1],
+            name='Raw Image'
+        )
+
+        # Add skeleton edges as Shapes layer
+        if edge_lines:
+            app_state.skeleton_layer = viewer.add_shapes(
+                edge_lines,
+                shape_type='path',
+                edge_width=0.2,
+                edge_color='red',
+                face_color='transparent',
+                scale=[1.765, 1, 1],
+                name='Skeleton Edges'
+            )
+        else:
+            app_state.skeleton_layer = viewer.add_points(
+                skel_im,
+                size=3,
+                face_color=face_colors,
+                scale=[1.765, 1, 1],
+                name='Skeleton'
+            )
+
+        # Add extracted nodes if available
+        if positions and colors:
+            app_state.points_layer = viewer.add_points(
+                positions,
+                size=5,
+                face_color=colors,
+                scale=[1.765, 1, 1],
+                name='Extracted Nodes'
+            )
 
     widget.log_status(f"Inserted new node (ID: {new_node_id}) at position {snapped_pos}")
