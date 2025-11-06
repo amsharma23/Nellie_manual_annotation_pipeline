@@ -1,8 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Mon Mar 10 16:54:53 2025
-
 @author: amansharma
 """
 import napari
@@ -16,14 +13,12 @@ try:
 except ImportError:
     NELLIE_AVAILABLE = False
 
-
 def main():
     """Main function to start the application."""
     viewer = load_viewer()
     # Check for Nellie library
     if not NELLIE_AVAILABLE:
-        show_warning("Nellie library not found. Please install it for full functionality.")
-    
+        show_warning("Nellie library not found. Please install it for full functionality.")    
     return viewer
 
 if __name__ == "__main__":
