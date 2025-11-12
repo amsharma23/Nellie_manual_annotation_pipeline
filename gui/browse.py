@@ -11,7 +11,7 @@ QVBoxLayout, QHBoxLayout, QWidget, QFileDialog)
 
 def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_btn, type_combo, analyze_dynamics_btn, file_path):
     """Handle browse button click to select input file or folder.
-    
+
     Args:
         widget: The parent widget for QFileDialog
         path_label: The QLabel to update with folder name
@@ -19,9 +19,11 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
         view_btn: The view button to potentially enable
         type_combo: ComboBox with folder type selection
     """
-    
+
+    # Reset state when selecting a new file/folder
+    app_state.reset()
     app_state.folder_type = type_combo.currentText()
-    
+
     if file_path:
 
         app_state.loaded_folder = file_path
