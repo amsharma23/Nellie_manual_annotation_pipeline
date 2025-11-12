@@ -1,10 +1,11 @@
 import os
+import gc
 from natsort import natsorted
 from app_state import app_state
 import pandas as pd
 from qtpy.QtWidgets import (
-    QCheckBox, QComboBox, QFormLayout, QGroupBox, 
-QLabel, QPushButton, QSpinBox, QTextEdit, 
+    QCheckBox, QComboBox, QFormLayout, QGroupBox,
+QLabel, QPushButton, QSpinBox, QTextEdit,
 QVBoxLayout, QHBoxLayout, QWidget, QFileDialog)
 
 
@@ -20,9 +21,37 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
         type_combo: ComboBox with folder type selection
     """
 
+    # Clear viewer layers and memory before resetting state
+    if hasattr(widget, 'viewer') and widget.viewer is not None:
+        try:
+            widget.viewer.layers.clear()
+            widget.log_status("Cleared previous visualization from viewer.")
+        except Exception as e:
+            widget.log_status(f"Note: Could not clear viewer layers: {str(e)}")
+
+    # Reset UI elements to initial state
+    view_btn.setEnabled(False)
+    network_btn.setEnabled(False)
+    graph_btn.setEnabled(False)
+    analyze_dynamics_btn.setEnabled(False)
+
+    # Reset image slider and navigation if they exist
+    if hasattr(widget, 'image_slider'):
+        widget.image_slider.setValue(1)
+        widget.image_slider.setMaximum(1)
+    if hasattr(widget, 'image_label'):
+        widget.image_label.setText("Current Image: 1/1")
+    if hasattr(widget, 'prev_btn'):
+        widget.prev_btn.setEnabled(False)
+    if hasattr(widget, 'next_btn'):
+        widget.next_btn.setEnabled(False)
+
     # Reset state when selecting a new file/folder
     app_state.reset()
     app_state.folder_type = type_combo.currentText()
+
+    # Force garbage collection to free memory
+    gc.collect()
 
     if file_path:
 
