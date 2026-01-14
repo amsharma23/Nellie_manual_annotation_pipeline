@@ -18,6 +18,7 @@ except ImportError:
 from napari.utils.notifications import show_info, show_warning, show_error
 import os
 import logging
+from app_state import app_state
 
 def run_nellie_processing(im_path, num_t=None, remove_edges=False, ch=0):
     
@@ -43,11 +44,11 @@ def run_nellie_processing(im_path, num_t=None, remove_edges=False, ch=0):
         file_info.find_metadata()
         file_info.load_metadata()
 
-        # Set dimension sizes (adjust these values based on your imaging parameters)
+        # Set dimension sizes from GUI resolution settings
         # use change_dim_res to ensure FileInfo internal validation runs
-        file_info.change_dim_res('Z', 0.25)
-        file_info.change_dim_res('Y', 0.11)
-        file_info.change_dim_res('X', 0.11)
+        file_info.change_dim_res('Z', app_state.z_resolution)
+        file_info.change_dim_res('Y', app_state.y_resolution)
+        file_info.change_dim_res('X', app_state.x_resolution)
         file_info.change_dim_res('T', 0)
 
         # Ensure selected temporal range does not exceed actual frames

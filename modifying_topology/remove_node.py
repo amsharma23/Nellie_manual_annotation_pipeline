@@ -106,7 +106,7 @@ def remove_node(viewer, widget):
         # Add raw image layer
         app_state.raw_layer = viewer.add_image(
             raw_im,
-            scale=[1.765, 1, 1],
+            scale=app_state.visualization_scale,
             name='Raw Image'
         )
 
@@ -118,7 +118,7 @@ def remove_node(viewer, widget):
                 edge_width=0.2,
                 edge_color='red',
                 face_color='transparent',
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Skeleton Edges'
             )
         else:
@@ -126,7 +126,7 @@ def remove_node(viewer, widget):
                 skel_im,
                 size=3,
                 face_color=face_colors,
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Skeleton'
             )
 
@@ -136,7 +136,7 @@ def remove_node(viewer, widget):
                 positions,
                 size=5,
                 face_color=colors,
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Extracted Nodes'
             )
 

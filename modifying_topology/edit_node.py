@@ -39,7 +39,7 @@ def highlight(viewer,widget):
                                     app_state.editable_node_positions,
                                     size=5,
                                     face_color='yellow',
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Connected Nodes'
                                 )
     

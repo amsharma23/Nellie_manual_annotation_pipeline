@@ -6,7 +6,7 @@ Created on Mon Mar 10 17:47:10 2025
 @author: amansharma
 """
 from qtpy.QtWidgets import (
-    QCheckBox, QComboBox, QFormLayout, QGroupBox,
+    QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox,
     QLabel, QPushButton, QSpinBox, QTextEdit,
     QVBoxLayout, QHBoxLayout, QWidget, QFileDialog, QScrollArea,
 )
@@ -85,7 +85,35 @@ class FileLoaderWidget(QWidget):
         proc_layout.addRow("Remove Edge Artifacts:", self.remove_edges_check)
         
         layout.addWidget(proc_group)
-        
+
+        # Resolution settings section
+        res_group = QGroupBox("Resolution Settings (µm)")
+        res_layout = QFormLayout()
+        res_group.setLayout(res_layout)
+
+        self.z_res_spin = QDoubleSpinBox()
+        self.z_res_spin.setRange(0.001, 10.0)
+        self.z_res_spin.setDecimals(3)
+        self.z_res_spin.setValue(app_state.z_resolution)
+        self.z_res_spin.valueChanged.connect(self.on_resolution_changed)
+        res_layout.addRow("Z Resolution:", self.z_res_spin)
+
+        self.y_res_spin = QDoubleSpinBox()
+        self.y_res_spin.setRange(0.001, 10.0)
+        self.y_res_spin.setDecimals(3)
+        self.y_res_spin.setValue(app_state.y_resolution)
+        self.y_res_spin.valueChanged.connect(self.on_resolution_changed)
+        res_layout.addRow("Y Resolution:", self.y_res_spin)
+
+        self.x_res_spin = QDoubleSpinBox()
+        self.x_res_spin.setRange(0.001, 10.0)
+        self.x_res_spin.setDecimals(3)
+        self.x_res_spin.setValue(app_state.x_resolution)
+        self.x_res_spin.valueChanged.connect(self.on_resolution_changed)
+        res_layout.addRow("X Resolution:", self.x_res_spin)
+
+        layout.addWidget(res_group)
+
         # Buttons section
         button_layout = QHBoxLayout()
         
@@ -211,7 +239,13 @@ class FileLoaderWidget(QWidget):
     def log_status(self, message):
         """Add a message to the status log."""
         log(self.status_text, message)
-        
+
+    def on_resolution_changed(self):
+        """Update app_state when resolution values change."""
+        app_state.z_resolution = self.z_res_spin.value()
+        app_state.y_resolution = self.y_res_spin.value()
+        app_state.x_resolution = self.x_res_spin.value()
+
     def on_browse_clicked(self):
         """Handle browse button click to select input file or folder."""
         file_path = QFileDialog.getExistingDirectory(self, "Select Folder")

@@ -14,6 +14,7 @@ import numpy as np
 from scipy.spatial.distance import cdist
 from typing import List, Dict, Tuple, Optional
 import ast
+from app_state import app_state
 
 
 def parse_adjacencies(adj_str):
@@ -36,7 +37,7 @@ def calculate_degree_from_adjacencies(adj_str):
     return len(adj_list)
 
 
-def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float = (0.29/0.11)):
+def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float = None):
     """
     Match nodes between two timepoints based on spatial proximity.
     Now allows one-to-many matching: each node in t1 can match multiple nodes in t2.
@@ -45,13 +46,17 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float =
         df_t1: DataFrame for timepoint 1
         df_t2: DataFrame for timepoint 2
         distance_threshold: Maximum distance to consider nodes as the same
-        z_scale: Scaling factor for z-dimension
+        z_scale: Scaling factor for z-dimension (uses app_state resolutions if None)
 
     Returns:
         Dictionary mapping indices in df_t1 to list of indices in df_t2
     """
     if df_t1.empty or df_t2.empty:
         return {}
+
+    # Use app_state resolutions if z_scale not provided
+    if z_scale is None:
+        z_scale = app_state.y_resolution / app_state.z_resolution if app_state.z_resolution > 0 else 1.0
 
     # Extract positions
     pos1 = df_t1[['pos_x', 'pos_y', 'pos_z']].values
@@ -85,7 +90,7 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float =
     return matches
 
 
-def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float = 1.0):
+def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float = None):
     """
     Classify network events into 6 specific categories based on degree 1 and 3 nodes with convergence/divergence criteria.
 
@@ -101,11 +106,14 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
         df_t1: DataFrame for earlier timepoint
         df_t2: DataFrame for later timepoint
         distance_threshold: Spatial matching threshold
-        z_scale: Scaling factor for z-dimension
+        z_scale: Scaling factor for z-dimension (uses app_state resolutions if None)
 
     Returns:
         Dictionary with classified events
     """
+    # Use app_state resolutions if z_scale not provided
+    if z_scale is None:
+        z_scale = app_state.y_resolution / app_state.z_resolution if app_state.z_resolution > 0 else 1.0
     # Calculate actual degrees from adjacency lists
     df_t1 = df_t1.copy()
     df_t2 = df_t2.copy()

@@ -93,7 +93,7 @@ def toggle_preview_mode(viewer, widget):
                 [snapped_pos],
                 size=10,
                 face_color='yellow',
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Insert Preview'
             )
             # Set edge properties after layer creation
@@ -239,7 +239,7 @@ def insert_node_at_cursor(viewer, widget):
         # Add raw image layer
         app_state.raw_layer = viewer.add_image(
             raw_im,
-            scale=[1.765, 1, 1],
+            scale=app_state.visualization_scale,
             name='Raw Image'
         )
 
@@ -251,7 +251,7 @@ def insert_node_at_cursor(viewer, widget):
                 edge_width=0.2,
                 edge_color='red',
                 face_color='transparent',
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Skeleton Edges'
             )
         else:
@@ -259,7 +259,7 @@ def insert_node_at_cursor(viewer, widget):
                 skel_im,
                 size=3,
                 face_color=face_colors,
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Skeleton'
             )
 
@@ -269,7 +269,7 @@ def insert_node_at_cursor(viewer, widget):
                 positions,
                 size=5,
                 face_color=colors,
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name='Extracted Nodes'
             )
 

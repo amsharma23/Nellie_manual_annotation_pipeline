@@ -86,7 +86,7 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, ed
     # Add raw image layer
     app_state.raw_layer = widget.viewer.add_image(
         raw_im,
-        scale=[1.765, 1, 1],
+        scale=app_state.visualization_scale,
         name='Raw Image'
     )
 
@@ -98,7 +98,7 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, ed
             edge_width=0.2,
             edge_color='red',
             face_color='transparent',
-            scale=[1.765, 1, 1],
+            scale=app_state.visualization_scale,
             name='Skeleton Edges'
         )
     else:
@@ -107,7 +107,7 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, ed
             skel_im,
             size=3,
             face_color=face_colors,
-            scale=[1.765, 1, 1],
+            scale=app_state.visualization_scale,
             name='Skeleton'
         )
 
@@ -117,7 +117,7 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, ed
             positions,
             size=3,
             face_color=colors,
-            scale=[1.765, 1, 1],
+            scale=app_state.visualization_scale,
             name='Extracted Nodes'
         )
 
@@ -293,7 +293,7 @@ def update_image(widget, viewer, current, index):
                     # Add new layer
                     app_state.raw_layer = widget.viewer.add_image(
                         raw_im, 
-                        scale=[1.765, 1, 1],  # Z, Y, X scaling
+                        scale=app_state.visualization_scale,  # Z, Y, X scaling
                         name=f'Raw Image {index+1}'
                     )
                     

@@ -40,7 +40,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                     # Add layers to viewer
                     app_state.raw_layer = widget.viewer.add_image(
                         raw_im,
-                        scale=[1.765, 1, 1],  # Z, Y, X scaling
+                        scale=app_state.visualization_scale,  # Z, Y, X scaling
                         name='Raw Image'
                     )
 
@@ -52,7 +52,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             edge_width=0.2,
                             edge_color='red',
                             face_color='transparent',
-                            scale=[1.765, 1, 1],
+                            scale=app_state.visualization_scale,
                             name='Skeleton Edges'
                         )
                     else:
@@ -64,7 +64,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 edge_width=0.2,
                                 edge_color='red',
                                 face_color='transparent',
-                                scale=[1.765, 1, 1],
+                                scale=app_state.visualization_scale,
                                 name='Skeleton Edges'
                             )
                         else:
@@ -72,7 +72,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 skel_im,
                                 size=3,
                                 face_color=face_colors,
-                                scale=[1.765, 1, 1],
+                                scale=app_state.visualization_scale,
                                 name='Skeleton'
                             )
                     
@@ -85,7 +85,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             positions,
                             size=5,
                             face_color=colors,
-                            scale=[1.765, 1, 1],
+                            scale=app_state.visualization_scale,
                             name='Extracted Nodes'
                         )
                     
@@ -121,7 +121,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             # Add layers to viewer
                             app_state.raw_layer = widget.viewer.add_image(
                                 raw_im,
-                                scale=[1.765, 1, 1],  # Z, Y, X scaling
+                                scale=app_state.visualization_scale,  # Z, Y, X scaling
                                 name='Raw Image'
                             )
 
@@ -133,7 +133,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     edge_width=0.2,
                                     edge_color='red',
                                     face_color='transparent',
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton Edges'
                                 )
                             else:
@@ -141,7 +141,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     skel_im,
                                     size=3,
                                     face_color=face_colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton'
                                 )
                             
@@ -151,7 +151,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     positions,
                                     size=5,
                                     face_color=colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Extracted Nodes'
                                 )
                             widget.log_status("Joined Nodes sucessfully")
@@ -176,7 +176,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             # Add layers to viewer
                             app_state.raw_layer = widget.viewer.add_image(
                                 raw_im, 
-                                scale=[1.765, 1, 1],  # Z, Y, X scaling
+                                scale=app_state.visualization_scale,  # Z, Y, X scaling
                                 name='Raw Image'
                             )
                             
@@ -188,7 +188,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     edge_width=0.2,
                                     edge_color='red',
                                     face_color='transparent',
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton Edges'
                                 )
                             else:
@@ -196,7 +196,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     skel_im,
                                     size=3,
                                     face_color=face_colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton'
                                 )
                             
@@ -206,7 +206,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     positions,
                                     size=5,
                                     face_color=colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Extracted Nodes'
                                 )
                             widget.log_status("Broke Nodes sucessfully")
@@ -301,7 +301,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                             # Add layers to viewer
                             app_state.raw_layer = widget.viewer.add_image(
                                 raw_im, 
-                                scale=[1.765, 1, 1],  # Z, Y, X scaling
+                                scale=app_state.visualization_scale,  # Z, Y, X scaling
                                 name='Raw Image'
                             )
                             
@@ -313,7 +313,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     edge_width=0.2,
                                     edge_color='red',
                                     face_color='transparent',
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton Edges'
                                 )
                             else:
@@ -321,7 +321,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     skel_im,
                                     size=3,
                                     face_color=face_colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton'
                                 )
                             
@@ -331,7 +331,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     positions,
                                     size=5,
                                     face_color=colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Extracted Nodes'
                                 )
                             
@@ -364,7 +364,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                      # Add layers to viewer
                                         app_state.raw_layer = widget.viewer.add_image(
                                                             raw_im, 
-                                                            scale=[1.765, 1, 1],  # Z, Y, X scaling
+                                                            scale=app_state.visualization_scale,  # Z, Y, X scaling
                                                             name='Raw Image'
                                                             )
                                     
@@ -376,7 +376,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                             edge_width=0.2,
                                             edge_color='red',
                                             face_color='transparent',
-                                            scale=[1.765, 1, 1],
+                                            scale=app_state.visualization_scale,
                                             name='Skeleton Edges'
                                         )
                                     else:
@@ -384,7 +384,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                             skel_im,
                                             size=3,
                                             face_color=face_colors,
-                                            scale=[1.765, 1, 1],
+                                            scale=app_state.visualization_scale,
                                             name='Skeleton'
                                         )
                                     
@@ -394,7 +394,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                             positions,
                                             size=5,
                                             face_color=colors,
-                                            scale=[1.765, 1, 1],
+                                            scale=app_state.visualization_scale,
                                             name='Extracted Nodes'
                                         )
                                     widget.log_status("Joined Nodes sucessfully")
@@ -419,7 +419,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     # Add layers to viewer
                                     app_state.raw_layer = widget.viewer.add_image(
                                                         raw_im, 
-                                                        scale=[1.765, 1, 1],  # Z, Y, X scaling
+                                                        scale=app_state.visualization_scale,  # Z, Y, X scaling
                                                         name='Raw Image'
                                                         )
                                 
@@ -427,7 +427,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                     skel_im,
                                     size=3,
                                     face_color=face_colors,
-                                    scale=[1.765, 1, 1],
+                                    scale=app_state.visualization_scale,
                                     name='Skeleton'
                                 )
                                 
@@ -437,7 +437,7 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                         positions,
                                         size=5,
                                         face_color=colors,
-                                        scale=[1.765, 1, 1],
+                                        scale=app_state.visualization_scale,
                                         name='Extracted Nodes'
                                     )
                                 widget.log_status("Broke Nodes sucessfully")

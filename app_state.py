@@ -35,9 +35,23 @@ class AppState:
         self.dynamics_analysis_results = None
         # Skeleton coordinates for point insertion
         self.skeleton_coords = None
+        # Dimension resolutions (µm)
+        self.z_resolution = 0.292
+        self.y_resolution = 0.11
+        self.x_resolution = 0.11
+
+    @property
+    def visualization_scale(self):
+        """Calculate [Z, Y, X] scale for napari visualization."""
+        z_scale = self.y_resolution / self.z_resolution if self.z_resolution > 0 else 1.0
+        return [z_scale, 1, 1]
 
     def reset(self):
-        """Reset all state variables to their initial values."""
+        """Reset all state variables to their initial values.
+
+        Note: Resolution settings are NOT reset as they are user preferences
+        that should persist across folder changes.
+        """
         self.loaded_folder = None
         self.current_extracted_file = ""
         self.nellie_output_path = None

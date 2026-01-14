@@ -369,7 +369,7 @@ def load_dynamics_events_layer(viewer, current_timepoint=None):
                 face_color=all_colors,
                 size=8,
                 opacity=0.5,
-                scale=[1.765, 1, 1],
+                scale=app_state.visualization_scale,
                 name="Dynamic Events"
             )
 
