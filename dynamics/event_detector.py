@@ -56,7 +56,7 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float =
 
     # Use app_state resolutions if z_scale not provided
     if z_scale is None:
-        z_scale = app_state.y_resolution / app_state.z_resolution if app_state.z_resolution > 0 else 1.0
+        z_scale = app_state.z_resolution / app_state.y_resolution if app_state.y_resolution > 0 else 1.0
 
     # Extract positions
     pos1 = df_t1[['pos_x', 'pos_y', 'pos_z']].values
@@ -113,7 +113,7 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
     """
     # Use app_state resolutions if z_scale not provided
     if z_scale is None:
-        z_scale = app_state.y_resolution / app_state.z_resolution if app_state.z_resolution > 0 else 1.0
+        z_scale = app_state.z_resolution / app_state.y_resolution if app_state.y_resolution > 0 else 1.0
     # Calculate actual degrees from adjacency lists
     df_t1 = df_t1.copy()
     df_t2 = df_t2.copy()

@@ -42,8 +42,12 @@ class AppState:
 
     @property
     def visualization_scale(self):
-        """Calculate [Z, Y, X] scale for napari visualization."""
-        z_scale = self.y_resolution / self.z_resolution if self.z_resolution > 0 else 1.0
+        """Calculate [Z, Y, X] scale for napari visualization.
+
+        Z is scaled relative to Y to account for anisotropic voxel sizes.
+        Larger Z voxels need to be stretched in the display.
+        """
+        z_scale = self.z_resolution / self.y_resolution if self.y_resolution > 0 else 1.0
         return [z_scale, 1, 1]
 
     def reset(self):
