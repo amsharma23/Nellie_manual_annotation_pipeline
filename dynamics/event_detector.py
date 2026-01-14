@@ -37,6 +37,33 @@ def calculate_degree_from_adjacencies(adj_str):
     return len(adj_list)
 
 
+def has_dynamics_data(df):
+    """Check if DataFrame has dynamics columns (convergence_raw, divergence_raw)."""
+    return 'convergence_raw' in df.columns and 'divergence_raw' in df.columns
+
+
+def are_nodes_adjacent(df, idx1, idx2):
+    """
+    Check if two nodes are neighbors based on adjacency lists.
+
+    Args:
+        df: DataFrame containing node data
+        idx1: Index of first node in DataFrame
+        idx2: Index of second node in DataFrame
+
+    Returns:
+        True if nodes are adjacent (either lists the other as neighbor)
+    """
+    node1_id = df.iloc[idx1]['node']
+    node2_id = df.iloc[idx2]['node']
+
+    adj1 = parse_adjacencies(df.iloc[idx1]['adjacencies'])
+    adj2 = parse_adjacencies(df.iloc[idx2]['adjacencies'])
+
+    # Check if either node lists the other as neighbor
+    return node2_id in adj1 or node1_id in adj2
+
+
 def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float = None):
     """
     Match nodes between two timepoints based on spatial proximity.
@@ -114,6 +141,10 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
     # Use app_state resolutions if z_scale not provided
     if z_scale is None:
         z_scale = app_state.z_resolution / app_state.y_resolution if app_state.y_resolution > 0 else 1.0
+
+    # Check if dynamics data is available for strict validation
+    use_dynamics = has_dynamics_data(df_t1) and has_dynamics_data(df_t2)
+
     # Calculate actual degrees from adjacency lists
     df_t1 = df_t1.copy()
     df_t2 = df_t2.copy()
@@ -166,16 +197,23 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
             # 1. Tip-edge fusion: degree 1 → degree ≥3 (tip fuses to edge to become junction)
             # Must be exactly one-to-one transformation with positive convergence
             if degree_t1 == 1 and degree_t2 >= 3:
-                # Check for positive convergence in t2
-                #convergence_t2 = df_t2.iloc[t2_idx].get('convergence_raw', 0)
-                #event_data['convergence'] = convergence_t2
+                # Check for positive convergence in t2 (strict mode)
+                if use_dynamics:
+                    convergence_t2 = df_t2.iloc[t2_idx].get('convergence_raw', 0)
+                    if convergence_t2 <= 0:
+                        continue  # Skip - no convergence signal
+                    event_data['convergence'] = convergence_t2
                 events['tip_edge_fusion'].append(event_data)
 
             # 2. Junction breakage: degree ≥3 → degree 1 (junction breaks to become tip)
             # Must be exactly one-to-one transformation with divergence
             elif degree_t1 >= 3 and degree_t2 == 1:
-                # Check for divergence in t1
-                #event_data['divergence'] = divergence_t1
+                # Check for divergence in t1 (strict mode)
+                if use_dynamics:
+                    divergence_t1 = df_t1.iloc[t1_idx].get('divergence_raw', 0)
+                    if divergence_t1 <= 0:
+                        continue  # Skip - no divergence signal
+                    event_data['divergence'] = divergence_t1
                 events['junction_breakage'].append(event_data)
 
        
@@ -191,7 +229,7 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
     appeared_junctions = [idx for idx in appeared_t2 if df_t2.iloc[idx]['actual_degree'] == 3]
 
     # 3. Tip-tip fusion: exactly 2 degree 1 nodes in close proximity disappear together
-    # Must be exactly 2 tips that disappear and are within distance threshold with convergence
+    # Must be exactly 2 tips that disappear and are within distance threshold with divergence
     for i, idx1 in enumerate(disappeared_tips):
         for idx2 in disappeared_tips[i+1:]:
             pos1 = [df_t1.iloc[idx1]['pos_x'], df_t1.iloc[idx1]['pos_y'], df_t1.iloc[idx1]['pos_z']]
@@ -206,24 +244,31 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
 
-            # Check for convergence in either tip (from t1 since they're disappearing)
-            #divergence_1_1 = df_t1.iloc[idx1].get('divergence_raw', 0)
-            #divergence_1_2 = df_t1.iloc[idx2].get('divergence_raw', 0)
+            # Distance filter: tips must be within 2x threshold to fuse
+            if distance > distance_threshold * 2:
+                continue
 
-            # Use standard distance threshold for precise tip-tip fusion detection
-            #if distance <= 2*distance_threshold and (divergence_1_1 > 0 and divergence_1_2 > 0):
-            events['tip_tip_fusion'].append({
+            # Check for divergence in both tips (strict mode - from t1 since they're disappearing)
+            if use_dynamics:
+                divergence_1 = df_t1.iloc[idx1].get('divergence_raw', 0)
+                divergence_2 = df_t1.iloc[idx2].get('divergence_raw', 0)
+                if divergence_1 <= 0 or divergence_2 <= 0:
+                    continue  # Skip - both tips need divergence signal
+
+            event_data = {
                 'tip1_position': pos1,
                 'tip2_position': pos2,
                 'distance': distance,
-#                'divergence_tip1': divergence_1_1,
-#                'divergence_tip2': divergence_1_2,
                 'timepoint_1': df_t1.iloc[idx1].get('time_point', 'unknown'),
-                'timepoint_2': df_t1.iloc[idx2].get('time_point', 'unknown') + 1
-            })
+                'timepoint_2': df_t1.iloc[idx1].get('time_point', 'unknown') + 1
+            }
+            if use_dynamics:
+                event_data['divergence_tip1'] = divergence_1
+                event_data['divergence_tip2'] = divergence_2
+            events['tip_tip_fusion'].append(event_data)
 
     # 4. Tip-tip fission: two tips appear (edge splits)
-    # Heuristic: pairs of nearby appeared tips with divergence
+    # Heuristic: pairs of nearby appeared tips with convergence (moving apart)
     for i, idx1 in enumerate(appeared_tips):
         for idx2 in appeared_tips[i+1:]:
             pos1 = [df_t2.iloc[idx1]['pos_x'], df_t2.iloc[idx1]['pos_y'], df_t2.iloc[idx1]['pos_z']]
@@ -238,23 +283,31 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
 
-            # Check for convergence in either tip (from t2 since they're appearing)
-            #convergence_1 = df_t2.iloc[idx1].get('convergence_raw', 0)
-            #convergence_2 = df_t2.iloc[idx2].get('convergence_raw', 0)
+            # Distance filter: tips must be within 2x threshold for fission
+            if distance > distance_threshold * 2:
+                continue
 
-            #if distance <= distance_threshold * 2 and (convergence_1 > 0 or convergence_2 > 0):  # Allow larger threshold for fission
-            events['tip_tip_fission'].append({
+            # Check for convergence in either tip (strict mode - from t2 since they're appearing)
+            if use_dynamics:
+                convergence_1 = df_t2.iloc[idx1].get('convergence_raw', 0)
+                convergence_2 = df_t2.iloc[idx2].get('convergence_raw', 0)
+                if convergence_1 <= 0 and convergence_2 <= 0:
+                    continue  # Skip - at least one tip needs convergence signal
+
+            event_data = {
                 'tip1_position': pos1,
                 'tip2_position': pos2,
                 'distance': distance,
-#                'divergence_tip1': convergence_1,
-#                'divergence_tip2': convergence_2,
                 'timepoint_1': df_t2.iloc[idx1].get('time_point', 'unknown') - 1,
-                'timepoint_2': df_t2.iloc[idx2].get('time_point', 'unknown')
-            })
+                'timepoint_2': df_t2.iloc[idx1].get('time_point', 'unknown')
+            }
+            if use_dynamics:
+                event_data['convergence_tip1'] = convergence_1
+                event_data['convergence_tip2'] = convergence_2
+            events['tip_tip_fission'].append(event_data)
 
     # 5. Extrusion: new tip and junction appear (tip juts out of edge)
-    # Heuristic: nearby appeared tip and junction pairs with divergence
+    # Heuristic: nearby appeared tip and junction pairs that are adjacent, with negative convergence
     for tip_idx in appeared_tips:
         for junction_idx in appeared_junctions:
             tip_pos = [df_t2.iloc[tip_idx]['pos_x'], df_t2.iloc[tip_idx]['pos_y'], df_t2.iloc[tip_idx]['pos_z']]
@@ -269,23 +322,35 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
 
-            # Check for convergence in tip or junction (from t2 since they're appearing)
-#            convergence_tip = df_t2.iloc[tip_idx].get('convergence_raw', 0)
-#            convergence_junction = df_t2.iloc[junction_idx].get('convergence_raw', 0)
+            # Distance filter: tip and junction must be close
+            if distance > distance_threshold:
+                continue
 
-#            if distance <= distance_threshold and (convergence_tip < 0 or convergence_junction < 0):
-            events['extrusion'].append({
+            # Adjacency validation: tip must be connected to junction
+            if not are_nodes_adjacent(df_t2, tip_idx, junction_idx):
+                continue
+
+            # Check for negative convergence in tip or junction (strict mode - material extending out)
+            if use_dynamics:
+                convergence_tip = df_t2.iloc[tip_idx].get('convergence_raw', 0)
+                convergence_junction = df_t2.iloc[junction_idx].get('convergence_raw', 0)
+                if convergence_tip >= 0 and convergence_junction >= 0:
+                    continue  # Skip - need negative convergence (extension)
+
+            event_data = {
                 'tip_position': tip_pos,
                 'junction_position': junction_pos,
                 'distance': distance,
-#                    'convergence_tip': convergence_tip,
-#                    'convergence_junction': convergence_junction,
                 'timepoint_1': df_t2.iloc[tip_idx].get('time_point', 'unknown') - 1,
-                'timepoint_2': df_t2.iloc[junction_idx].get('time_point', 'unknown')
-            })
+                'timepoint_2': df_t2.iloc[tip_idx].get('time_point', 'unknown')
+            }
+            if use_dynamics:
+                event_data['convergence_tip'] = convergence_tip
+                event_data['convergence_junction'] = convergence_junction
+            events['extrusion'].append(event_data)
 
     # 6. Retraction: tip and junction disappear (opposite of extrusion)
-    # Heuristic: nearby disappeared tip and junction pairs with convergence
+    # Heuristic: nearby disappeared tip and junction pairs that were adjacent, with positive divergence
     for tip_idx in disappeared_tips:
         for junction_idx in disappeared_junctions:
             tip_pos = [df_t1.iloc[tip_idx]['pos_x'], df_t1.iloc[tip_idx]['pos_y'], df_t1.iloc[tip_idx]['pos_z']]
@@ -300,20 +365,32 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 p2[2] = p2[2] * z_scale
             distance = np.linalg.norm(p1 - p2)
 
-            # Check for convergence in tip or junction (from t1 since they're disappearing)
-#            divergence_tip = df_t1.iloc[tip_idx].get('divergence_raw', 0)
-#            divergence_junction = df_t1.iloc[junction_idx].get('divergence_raw', 0)
+            # Distance filter: tip and junction must be close
+            if distance > distance_threshold:
+                continue
 
-#            if distance <= distance_threshold and (divergence_tip > 0 or divergence_junction > 0):
-            events['retraction'].append({
+            # Adjacency validation: tip must have been connected to junction
+            if not are_nodes_adjacent(df_t1, tip_idx, junction_idx):
+                continue
+
+            # Check for positive divergence in tip or junction (strict mode - material pulling back)
+            if use_dynamics:
+                divergence_tip = df_t1.iloc[tip_idx].get('divergence_raw', 0)
+                divergence_junction = df_t1.iloc[junction_idx].get('divergence_raw', 0)
+                if divergence_tip <= 0 and divergence_junction <= 0:
+                    continue  # Skip - need positive divergence (retraction)
+
+            event_data = {
                 'tip_position': tip_pos,
                 'junction_position': junction_pos,
                 'distance': distance,
-#                'divergence_tip': divergence_tip,
-#                'divergence_junction': divergence_junction,
                 'timepoint_1': df_t1.iloc[tip_idx].get('time_point', 'unknown'),
-                'timepoint_2': df_t1.iloc[junction_idx].get('time_point', 'unknown') + 1
-            })
+                'timepoint_2': df_t1.iloc[tip_idx].get('time_point', 'unknown') + 1
+            }
+            if use_dynamics:
+                event_data['divergence_tip'] = divergence_tip
+                event_data['divergence_junction'] = divergence_junction
+            events['retraction'].append(event_data)
 
     return events
 
