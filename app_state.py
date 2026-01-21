@@ -39,6 +39,9 @@ class AppState:
         self.z_resolution = 0.292
         self.y_resolution = 0.11
         self.x_resolution = 0.11
+        # Dynamics analysis parameters
+        self.distance_threshold = 5.0  # pixels - spatial matching threshold for nodes
+        self.persistence_window = 1    # frames - validation window for events
 
     @property
     def visualization_scale(self):

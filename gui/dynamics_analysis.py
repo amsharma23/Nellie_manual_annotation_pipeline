@@ -59,14 +59,14 @@ def analyze_dynamics_clicked(widget):
 
         # Now run the dynamics analysis using the CSV file
         widget.log_status("Analyzing network dynamics events...")
+        widget.log_status(f"  Distance threshold: {app_state.distance_threshold} px")
+        widget.log_status(f"  Persistence window: {app_state.persistence_window} frames")
 
-        # Get distance threshold from GUI (default 5.0 for now)
-        distance_threshold = getattr(widget, 'distance_threshold', 5.0)
-
-        # Run event analysis using the CSV file
+        # Run event analysis using the CSV file with parameters from app_state
         app_state.dynamics_events = analyze_events_from_csv(
             combined_csv_path,
-            distance_threshold=distance_threshold,
+            distance_threshold=app_state.distance_threshold,
+            persistence_window=app_state.persistence_window,
             output_folder=app_state.loaded_folder
         )
 

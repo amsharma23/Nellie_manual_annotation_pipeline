@@ -218,6 +218,27 @@ class FileLoaderWidget(QWidget):
         dynamics_layout = QVBoxLayout()
         self.dynamics_group.setLayout(dynamics_layout)
 
+        # Dynamics parameters
+        dynamics_params_layout = QFormLayout()
+
+        self.distance_threshold_spin = QDoubleSpinBox()
+        self.distance_threshold_spin.setRange(0.1, 50.0)
+        self.distance_threshold_spin.setDecimals(1)
+        self.distance_threshold_spin.setSingleStep(0.5)
+        self.distance_threshold_spin.setValue(app_state.distance_threshold)
+        self.distance_threshold_spin.setToolTip("Spatial matching threshold for tracking nodes between timepoints (pixels)")
+        self.distance_threshold_spin.valueChanged.connect(self.on_dynamics_params_changed)
+        dynamics_params_layout.addRow("Distance Threshold (px):", self.distance_threshold_spin)
+
+        self.persistence_window_spin = QSpinBox()
+        self.persistence_window_spin.setRange(1, 10)
+        self.persistence_window_spin.setValue(app_state.persistence_window)
+        self.persistence_window_spin.setToolTip("Number of frames to validate event persistence")
+        self.persistence_window_spin.valueChanged.connect(self.on_dynamics_params_changed)
+        dynamics_params_layout.addRow("Persistence Window (frames):", self.persistence_window_spin)
+
+        dynamics_layout.addLayout(dynamics_params_layout)
+
         # Analyze Dynamics button
         self.analyze_dynamics_btn = QPushButton("Analyze Dynamics")
         self.analyze_dynamics_btn.clicked.connect(self.on_analyze_dynamics_clicked)
@@ -245,6 +266,11 @@ class FileLoaderWidget(QWidget):
         app_state.z_resolution = self.z_res_spin.value()
         app_state.y_resolution = self.y_res_spin.value()
         app_state.x_resolution = self.x_res_spin.value()
+
+    def on_dynamics_params_changed(self):
+        """Update app_state when dynamics parameters change."""
+        app_state.distance_threshold = self.distance_threshold_spin.value()
+        app_state.persistence_window = self.persistence_window_spin.value()
 
     def on_browse_clicked(self):
         """Handle browse button click to select input file or folder."""

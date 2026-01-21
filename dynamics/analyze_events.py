@@ -13,13 +13,14 @@ import os
 from .event_detector import analyze_timeseries_events
 
 
-def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None):
+def analyze_events_from_csv(csv_path, distance_threshold=5.0, persistence_window=1, output_folder=None):
     """
     Analyze events from a combined timeseries adjacency CSV file.
 
     Args:
         csv_path: Path to the combined_timeseries_adjacency.csv file
-        distance_threshold: Spatial matching threshold for nodes
+        distance_threshold: Spatial matching threshold for nodes (pixels)
+        persistence_window: Number of frames to validate event persistence
         output_folder: Optional folder to save results
 
     Returns:
@@ -36,7 +37,9 @@ def analyze_events_from_csv(csv_path, distance_threshold=5.0, output_folder=None
 
     # Analyze events
     print("\nAnalyzing network dynamics events using 6-category classification...")
-    events = analyze_timeseries_events(df, distance_threshold)
+    print(f"  Distance threshold: {distance_threshold} px")
+    print(f"  Persistence window: {persistence_window} frames")
+    events = analyze_timeseries_events(df, distance_threshold, persistence_window=persistence_window)
 
     # Print detailed results
     print("\n" + "="*50)
