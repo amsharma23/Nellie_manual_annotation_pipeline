@@ -64,6 +64,90 @@ def are_nodes_adjacent(df, idx1, idx2):
     return node2_id in adj1 or node1_id in adj2
 
 
+def find_node_at_position(df, pos, distance_threshold, z_scale):
+    """
+    Find a node in DataFrame that matches the given position within threshold.
+
+    Args:
+        df: DataFrame with pos_x, pos_y, pos_z columns
+        pos: [x, y, z] position to search for
+        distance_threshold: Maximum distance to consider a match
+        z_scale: Z-axis scaling factor
+
+    Returns:
+        Index of matching node or None if not found
+    """
+    if df.empty:
+        return None
+
+    target = np.array(pos, dtype=float)
+    if target.size >= 3:
+        target[2] = target[2] * z_scale
+
+    for idx in range(len(df)):
+        node_pos = np.array([df.iloc[idx]['pos_x'], df.iloc[idx]['pos_y'], df.iloc[idx]['pos_z']], dtype=float)
+        if node_pos.size >= 3:
+            node_pos[2] = node_pos[2] * z_scale
+
+        dist = np.linalg.norm(target - node_pos)
+        if dist <= distance_threshold:
+            return idx
+
+    return None
+
+
+def check_node_exists_in_frames(combined_df, pos, timepoints, distance_threshold, z_scale):
+    """
+    Check if a node exists at the given position across multiple timepoints.
+
+    Args:
+        combined_df: Full timeseries DataFrame
+        pos: [x, y, z] position to check
+        timepoints: List of timepoints to check
+        distance_threshold: Spatial matching threshold
+        z_scale: Z-axis scaling factor
+
+    Returns:
+        True if node exists in ALL specified timepoints
+    """
+    for tp in timepoints:
+        df_tp = combined_df[combined_df['time_point'] == tp]
+        if df_tp.empty:
+            return False
+
+        found = find_node_at_position(df_tp, pos, distance_threshold, z_scale)
+        if found is None:
+            return False
+
+    return True
+
+
+def check_node_absent_in_frames(combined_df, pos, timepoints, distance_threshold, z_scale):
+    """
+    Check if a node is absent at the given position across multiple timepoints.
+
+    Args:
+        combined_df: Full timeseries DataFrame
+        pos: [x, y, z] position to check
+        timepoints: List of timepoints to check
+        distance_threshold: Spatial matching threshold
+        z_scale: Z-axis scaling factor
+
+    Returns:
+        True if node is absent in ALL specified timepoints
+    """
+    for tp in timepoints:
+        df_tp = combined_df[combined_df['time_point'] == tp]
+        if df_tp.empty:
+            continue  # Empty frame counts as absent
+
+        found = find_node_at_position(df_tp, pos, distance_threshold, z_scale)
+        if found is not None:
+            return False
+
+    return True
+
+
 def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float = None):
     """
     Match nodes between two timepoints based on spatial proximity.
@@ -117,7 +201,8 @@ def match_nodes_spatially(df_t1, df_t2, distance_threshold=2.0, z_scale: float =
     return matches
 
 
-def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float = None):
+def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float = None,
+                            combined_df=None, persistence_window=1):
     """
     Classify network events into 6 specific categories based on degree 1 and 3 nodes with convergence/divergence criteria.
 
@@ -129,11 +214,17 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
     5. extrusion: tip juts out of an edge leading to additional junction and tip (requires divergence)
     6. retraction: opposite of extrusion (requires convergence)
 
+    Node persistence validation (if combined_df provided and persistence_window > 1):
+    - For disappearing nodes: must exist for persistence_window frames BEFORE the event
+    - For appearing nodes: must persist for persistence_window frames AFTER the event
+
     Args:
         df_t1: DataFrame for earlier timepoint
         df_t2: DataFrame for later timepoint
         distance_threshold: Spatial matching threshold
         z_scale: Scaling factor for z-dimension (uses app_state resolutions if None)
+        combined_df: Full timeseries DataFrame for node persistence checking (optional)
+        persistence_window: Number of frames nodes must exist before/after event (default 1 = no checking)
 
     Returns:
         Dictionary with classified events
@@ -144,6 +235,19 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
 
     # Check if dynamics data is available for strict validation
     use_dynamics = has_dynamics_data(df_t1) and has_dynamics_data(df_t2)
+
+    # Get timepoint values for persistence checking
+    t1_timepoint = df_t1.iloc[0].get('time_point', None) if len(df_t1) > 0 else None
+    t2_timepoint = df_t2.iloc[0].get('time_point', None) if len(df_t2) > 0 else None
+
+    # Calculate frames to check for persistence
+    use_persistence = combined_df is not None and persistence_window > 1 and t1_timepoint is not None and t2_timepoint is not None
+    if use_persistence:
+        all_timepoints = sorted(combined_df['time_point'].unique())
+        # Frames before t1 (where disappearing nodes should exist)
+        frames_before = [tp for tp in all_timepoints if t1_timepoint - persistence_window < tp < t1_timepoint]
+        # Frames after t2 (where appearing nodes should persist)
+        frames_after = [tp for tp in all_timepoints if t2_timepoint < tp <= t2_timepoint + persistence_window]
 
     # Calculate actual degrees from adjacency lists
     df_t1 = df_t1.copy()
@@ -203,6 +307,12 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                     if convergence_t2 <= 0:
                         continue  # Skip - no convergence signal
                     event_data['convergence'] = convergence_t2
+                # Persistence check: tip (degree 1) must have existed before, junction must persist after
+                if use_persistence:
+                    if frames_before and not check_node_exists_in_frames(combined_df, pos_t1, frames_before, distance_threshold, z_scale):
+                        continue  # Tip didn't exist long enough before fusion
+                    if frames_after and not check_node_exists_in_frames(combined_df, pos_t2, frames_after, distance_threshold, z_scale):
+                        continue  # Junction doesn't persist after fusion
                 events['tip_edge_fusion'].append(event_data)
 
             # 2. Junction breakage: degree ≥3 → degree 1 (junction breaks to become tip)
@@ -214,6 +324,12 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                     if divergence_t1 <= 0:
                         continue  # Skip - no divergence signal
                     event_data['divergence'] = divergence_t1
+                # Persistence check: junction must have existed before, tip must persist after
+                if use_persistence:
+                    if frames_before and not check_node_exists_in_frames(combined_df, pos_t1, frames_before, distance_threshold, z_scale):
+                        continue  # Junction didn't exist long enough before breakage
+                    if frames_after and not check_node_exists_in_frames(combined_df, pos_t2, frames_after, distance_threshold, z_scale):
+                        continue  # Tip doesn't persist after breakage
                 events['junction_breakage'].append(event_data)
 
        
@@ -255,6 +371,19 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 if divergence_1 <= 0 or divergence_2 <= 0:
                     continue  # Skip - both tips need divergence signal
 
+            # Persistence check: both tips must have existed before fusion, both absent after
+            if use_persistence:
+                if frames_before:
+                    if not check_node_exists_in_frames(combined_df, pos1, frames_before, distance_threshold, z_scale):
+                        continue  # Tip 1 didn't exist long enough
+                    if not check_node_exists_in_frames(combined_df, pos2, frames_before, distance_threshold, z_scale):
+                        continue  # Tip 2 didn't exist long enough
+                if frames_after:
+                    if not check_node_absent_in_frames(combined_df, pos1, frames_after, distance_threshold, z_scale):
+                        continue  # Tip 1 reappears after fusion (not a real fusion)
+                    if not check_node_absent_in_frames(combined_df, pos2, frames_after, distance_threshold, z_scale):
+                        continue  # Tip 2 reappears after fusion (not a real fusion)
+
             event_data = {
                 'tip1_position': pos1,
                 'tip2_position': pos2,
@@ -293,6 +422,19 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 convergence_2 = df_t2.iloc[idx2].get('convergence_raw', 0)
                 if convergence_1 <= 0 and convergence_2 <= 0:
                     continue  # Skip - at least one tip needs convergence signal
+
+            # Persistence check: both tips must be absent before, and persist after fission
+            if use_persistence:
+                if frames_before:
+                    if not check_node_absent_in_frames(combined_df, pos1, frames_before, distance_threshold, z_scale):
+                        continue  # Tip 1 existed before (not a new fission)
+                    if not check_node_absent_in_frames(combined_df, pos2, frames_before, distance_threshold, z_scale):
+                        continue  # Tip 2 existed before (not a new fission)
+                if frames_after:
+                    if not check_node_exists_in_frames(combined_df, pos1, frames_after, distance_threshold, z_scale):
+                        continue  # Tip 1 doesn't persist after fission
+                    if not check_node_exists_in_frames(combined_df, pos2, frames_after, distance_threshold, z_scale):
+                        continue  # Tip 2 doesn't persist after fission
 
             event_data = {
                 'tip1_position': pos1,
@@ -337,6 +479,15 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 if convergence_tip >= 0 and convergence_junction >= 0:
                     continue  # Skip - need negative convergence (extension)
 
+            # Persistence check: only junction (tip moves too fast for reliable tracking)
+            if use_persistence:
+                if frames_before:
+                    if not check_node_absent_in_frames(combined_df, junction_pos, frames_before, distance_threshold, z_scale):
+                        continue  # Junction existed before (not a new extrusion)
+                if frames_after:
+                    if not check_node_exists_in_frames(combined_df, junction_pos, frames_after, distance_threshold, z_scale):
+                        continue  # Junction doesn't persist after extrusion
+
             event_data = {
                 'tip_position': tip_pos,
                 'junction_position': junction_pos,
@@ -379,6 +530,15 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                 divergence_junction = df_t1.iloc[junction_idx].get('divergence_raw', 0)
                 if divergence_tip <= 0 and divergence_junction <= 0:
                     continue  # Skip - need positive divergence (retraction)
+
+            # Persistence check: only junction (tip moves too fast for reliable tracking)
+            if use_persistence:
+                if frames_before:
+                    if not check_node_exists_in_frames(combined_df, junction_pos, frames_before, distance_threshold, z_scale):
+                        continue  # Junction didn't exist long enough before retraction
+                if frames_after:
+                    if not check_node_absent_in_frames(combined_df, junction_pos, frames_after, distance_threshold, z_scale):
+                        continue  # Junction reappears after retraction (not a real retraction)
 
             event_data = {
                 'tip_position': tip_pos,
@@ -479,18 +639,26 @@ def detect_component_changes(df_t1, df_t2, distance_threshold=2.0):
     return events
 
 
-def analyze_timeseries_events(combined_df, distance_threshold=2.0):
+def analyze_timeseries_events(combined_df, distance_threshold=2.0, persistence_window=1):
     """
     Analyze all events across the entire time series using the 6-category classification.
+
+    Node persistence validation:
+    - For disappearing nodes: must exist for persistence_window frames BEFORE the event
+    - For appearing nodes: must persist for persistence_window frames AFTER the event
 
     Args:
         combined_df: Combined DataFrame from timeseries_reader
         distance_threshold: Spatial matching threshold
+        persistence_window: Number of frames nodes must exist before/after event (1 = no validation)
 
     Returns:
         Dictionary with all detected events classified into 6 categories
     """
     time_points = sorted(combined_df['time_point'].unique())
+
+    # Get z_scale from app_state
+    z_scale = app_state.z_resolution / app_state.y_resolution if app_state.y_resolution > 0 else 1.0
 
     all_events = {
         'tip_edge_fusion_events': [],
@@ -501,26 +669,20 @@ def analyze_timeseries_events(combined_df, distance_threshold=2.0):
         'retraction_events': []
     }
 
-    summary_stats = {
-        'total_tip_edge_fusion': 0,
-        'total_junction_breakage': 0,
-        'total_tip_tip_fusion': 0,
-        'total_tip_tip_fission': 0,
-        'total_extrusion': 0,
-        'total_retraction': 0
-    }
-
-
+    # Collect events from each frame transition
     for i in range(len(time_points) - 1):
         t1, t2 = time_points[i], time_points[i + 1]
 
         df_t1 = combined_df[combined_df['time_point'] == t1]
         df_t2 = combined_df[combined_df['time_point'] == t2]
 
-        # Classify events using new system
-        events = classify_network_events(df_t1, df_t2, distance_threshold)
+        # Classify events with node persistence validation
+        events = classify_network_events(
+            df_t1, df_t2, distance_threshold, z_scale,
+            combined_df=combined_df, persistence_window=persistence_window
+        )
 
-        # Extend event lists
+        # Aggregate events
         all_events['tip_edge_fusion_events'].extend(events['tip_edge_fusion'])
         all_events['junction_breakage_events'].extend(events['junction_breakage'])
         all_events['tip_tip_fusion_events'].extend(events['tip_tip_fusion'])
@@ -528,13 +690,15 @@ def analyze_timeseries_events(combined_df, distance_threshold=2.0):
         all_events['extrusion_events'].extend(events['extrusion'])
         all_events['retraction_events'].extend(events['retraction'])
 
-        # Update summary stats
-        summary_stats['total_tip_edge_fusion'] += len(events['tip_edge_fusion'])
-        summary_stats['total_junction_breakage'] += len(events['junction_breakage'])
-        summary_stats['total_tip_tip_fusion'] += len(events['tip_tip_fusion'])
-        summary_stats['total_tip_tip_fission'] += len(events['tip_tip_fission'])
-        summary_stats['total_extrusion'] += len(events['extrusion'])
-        summary_stats['total_retraction'] += len(events['retraction'])
+    # Calculate summary stats
+    summary_stats = {
+        'total_tip_edge_fusion': len(all_events['tip_edge_fusion_events']),
+        'total_junction_breakage': len(all_events['junction_breakage_events']),
+        'total_tip_tip_fusion': len(all_events['tip_tip_fusion_events']),
+        'total_tip_tip_fission': len(all_events['tip_tip_fission_events']),
+        'total_extrusion': len(all_events['extrusion_events']),
+        'total_retraction': len(all_events['retraction_events'])
+    }
 
     all_events['summary_statistics'] = summary_stats
 
@@ -547,12 +711,16 @@ if __name__ == "__main__":
 
     if len(sys.argv) > 1:
         base_folder = sys.argv[1]
+        distance_threshold = float(sys.argv[2]) if len(sys.argv) > 2 else 5.0
+        persistence_window = int(sys.argv[3]) if len(sys.argv) > 3 else 1
 
         print("Loading time series data...")
         df = read_timeseries_csvs(base_folder)
 
         print("Analyzing events using 6-category classification...")
-        events = analyze_timeseries_events(df)
+        print(f"  Distance threshold: {distance_threshold} px")
+        print(f"  Persistence window: {persistence_window} frames")
+        events = analyze_timeseries_events(df, distance_threshold, persistence_window)
         print("\n=== EVENT DETECTION SUMMARY ===")
         print("Based on degree 1 (tips) and degree 3 (junctions) nodes only")
         print()
@@ -565,4 +733,4 @@ if __name__ == "__main__":
         print(f"\nTotal events detected: {total_events}")
 
     else:
-        print("Usage: python event_detector.py <base_folder_path>")
+        print("Usage: python event_detector.py <base_folder_path> [distance_threshold] [persistence_window]")

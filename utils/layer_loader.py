@@ -344,7 +344,7 @@ def load_dynamics_events_layer(viewer, current_timepoint=None):
                     continue
 
                 # Extract points and filter by timepoint if specified
-                points, colors, properties = extract_event_points(df, config, current_timepoint)
+                points, colors, properties = extract_event_points(df, config, current_timepoint, csv_file)
 
                 all_points.extend(points)
                 all_colors.extend(colors)
@@ -360,7 +360,9 @@ def load_dynamics_events_layer(viewer, current_timepoint=None):
             points_array = np.array(all_points)
             properties_dict = {
                 'event_type': [prop['event_type'] for prop in all_properties],
-                'timepoint': [prop['timepoint'] for prop in all_properties]
+                'timepoint': [prop['timepoint'] for prop in all_properties],
+                'csv_row_index': [prop['csv_row_index'] for prop in all_properties],
+                'csv_file': [prop['csv_file'] for prop in all_properties]
             }
 
             viewer.add_points(
@@ -383,7 +385,7 @@ def load_dynamics_events_layer(viewer, current_timepoint=None):
     return False
 
 
-def extract_event_points(df, config, current_timepoint=None):
+def extract_event_points(df, config, current_timepoint=None, csv_file=None):
     """
     Extract points from event DataFrame based on event type structure.
 
@@ -391,6 +393,7 @@ def extract_event_points(df, config, current_timepoint=None):
         df: Event DataFrame
         config: Event configuration (color, name)
         current_timepoint: Current timepoint to filter by
+        csv_file: Name of the CSV file this event came from
 
     Returns:
         tuple: (points, colors, properties)
@@ -399,7 +402,7 @@ def extract_event_points(df, config, current_timepoint=None):
     colors = []
     properties = []
 
-    for _, row in df.iterrows():
+    for row_idx, row in df.iterrows():
         event_points = []
         event_timepoint = None
 
@@ -442,7 +445,9 @@ def extract_event_points(df, config, current_timepoint=None):
             colors.append(config['color'])
             properties.append({
                 'event_type': config['name'],
-                'timepoint': event_timepoint
+                'timepoint': event_timepoint,
+                'csv_row_index': row_idx,
+                'csv_file': csv_file
             })
 
     return points, colors, properties

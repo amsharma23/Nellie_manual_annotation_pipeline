@@ -90,32 +90,20 @@ def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, ed
         name='Raw Image'
     )
 
-    # Add skeleton edges as Shapes layer (lines between connected nodes)
-    if edge_lines:
-        app_state.skeleton_layer = widget.viewer.add_shapes(
-            edge_lines,
-            shape_type='path',
-            edge_width=0.2,
-            edge_color='red',
-            face_color='transparent',
-            scale=app_state.visualization_scale,
-            name='Skeleton Edges'
-        )
-    else:
-        # Fallback to point-based skeleton if no edges available
-        app_state.skeleton_layer = widget.viewer.add_points(
-            skel_im,
-            size=3,
-            face_color=face_colors,
-            scale=app_state.visualization_scale,
-            name='Skeleton'
-        )
+    # Add skeleton as points layer
+    app_state.skeleton_layer = widget.viewer.add_points(
+        skel_im,
+        size=3,
+        face_color=face_colors,
+        scale=app_state.visualization_scale,
+        name='Skeleton'
+    )
 
     # Add extracted nodes if available
     if positions and colors:
         app_state.points_layer = widget.viewer.add_points(
             positions,
-            size=3,
+            size=5,
             face_color=colors,
             scale=app_state.visualization_scale,
             name='Extracted Nodes'
@@ -216,6 +204,69 @@ def setup_key_bindings(widget, viewer):
     @viewer.bind_key('x')
     def remove_node_key(viewer):
         remove_node(viewer, widget)
+
+    # ========== Dynamic Event Correction Keybindings ==========
+    from dynamics.manual_event_correction import (
+        delete_selected_event, show_event_info,
+        add_event_at_cursor, EVENT_TYPES
+    )
+
+    @viewer.bind_key('d')
+    def delete_event(viewer):
+        """Delete selected dynamic event (key: 'd')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            delete_selected_event(viewer, widget, current_tp)
+
+    @viewer.bind_key('Control-i')
+    def event_info(viewer):
+        """Show info about selected event (key: 'Ctrl+i')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            show_event_info(viewer, widget, current_tp)
+
+    # Keybindings for adding specific event types (1-6)
+    @viewer.bind_key('1')
+    def add_tip_edge_fusion(viewer):
+        """Add tip-edge fusion event at cursor (key: '1')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            add_event_at_cursor(viewer, widget, 'tip_edge_fusion', current_tp)
+
+    @viewer.bind_key('2')
+    def add_junction_breakage(viewer):
+        """Add junction breakage event at cursor (key: '2')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            add_event_at_cursor(viewer, widget, 'junction_breakage', current_tp)
+
+    @viewer.bind_key('3')
+    def add_tip_tip_fusion(viewer):
+        """Add tip-tip fusion event at cursor (key: '3')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            add_event_at_cursor(viewer, widget, 'tip_tip_fusion', current_tp)
+
+    @viewer.bind_key('4')
+    def add_tip_tip_fission(viewer):
+        """Add tip-tip fission event at cursor (key: '4')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            add_event_at_cursor(viewer, widget, 'tip_tip_fission', current_tp)
+
+    @viewer.bind_key('5')
+    def add_extrusion(viewer):
+        """Add extrusion event at cursor (key: '5')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            add_event_at_cursor(viewer, widget, 'extrusion', current_tp)
+
+    @viewer.bind_key('6')
+    def add_retraction(viewer):
+        """Add retraction event at cursor (key: '6')"""
+        if hasattr(widget, 'image_slider'):
+            current_tp = widget.image_slider.value()
+            add_event_at_cursor(viewer, widget, 'retraction', current_tp)
 
 
 def update_image(widget, viewer, current, index):

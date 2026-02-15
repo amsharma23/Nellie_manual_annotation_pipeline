@@ -110,25 +110,14 @@ def remove_node(viewer, widget):
             name='Raw Image'
         )
 
-        # Add skeleton edges as Shapes layer
-        if edge_lines:
-            app_state.skeleton_layer = viewer.add_shapes(
-                edge_lines,
-                shape_type='path',
-                edge_width=0.2,
-                edge_color='red',
-                face_color='transparent',
-                scale=app_state.visualization_scale,
-                name='Skeleton Edges'
-            )
-        else:
-            app_state.skeleton_layer = viewer.add_points(
-                skel_im,
-                size=3,
-                face_color=face_colors,
-                scale=app_state.visualization_scale,
-                name='Skeleton'
-            )
+        # Add skeleton as points layer
+        app_state.skeleton_layer = viewer.add_points(
+            skel_im,
+            size=3,
+            face_color=face_colors,
+            scale=app_state.visualization_scale,
+            name='Skeleton'
+        )
 
         # Add extracted nodes if available
         if positions and colors:

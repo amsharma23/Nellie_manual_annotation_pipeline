@@ -10,7 +10,7 @@ QVBoxLayout, QHBoxLayout, QWidget, QFileDialog)
 
 
 
-def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_btn, type_combo, analyze_dynamics_btn, file_path):
+def browse_folder(widget, path_label, process_btn, view_btn, network_btn, type_combo, analyze_dynamics_btn, file_path):
     """Handle browse button click to select input file or folder.
 
     Args:
@@ -32,7 +32,6 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
     # Reset UI elements to initial state
     view_btn.setEnabled(False)
     network_btn.setEnabled(False)
-    graph_btn.setEnabled(False)
     analyze_dynamics_btn.setEnabled(False)
 
     # Reset image slider and navigation if they exist
@@ -123,17 +122,14 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, graph_
 
                         if check_skel and check_extracted and check_multigraph_im:
                             network_btn.setEnabled(True)
-                            graph_btn.setEnabled(True)
                             widget.log_status(f"Raw Image is already processed and has a graph image for {subdir}!")
-                        
+
                         elif check_skel and check_extracted:
                             network_btn.setEnabled(True)
-                            graph_btn.setEnabled(True)    
                             widget.log_status(f"Raw Image is already processed and has a graph generated that can be visualized for {subdir}!")
-                        
+
                         elif check_skel:
                             network_btn.setEnabled(True)
-                            graph_btn.setEnabled(False)
                             widget.log_status(f"Raw Image is already processed and has a skeleton for {subdir}!")
                     else:
                         # No nellie output folder means no adjacency file

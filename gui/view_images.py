@@ -44,42 +44,17 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                         name='Raw Image'
                     )
 
-                    # Add skeleton edges as Shapes layer (lines between connected nodes)
-                    if edge_lines:
-                        app_state.skeleton_layer = widget.viewer.add_shapes(
-                            edge_lines,
-                            shape_type='path',
-                            edge_width=0.2,
-                            edge_color='red',
-                            face_color='transparent',
-                            scale=app_state.visualization_scale,
-                            name='Skeleton Edges'
-                        )
-                    else:
-                        # Add skeleton edges as Shapes layer
-                        if edge_lines:
-                            app_state.skeleton_layer = widget.viewer.add_shapes(
-                                edge_lines,
-                                shape_type='path',
-                                edge_width=0.2,
-                                edge_color='red',
-                                face_color='transparent',
-                                scale=app_state.visualization_scale,
-                                name='Skeleton Edges'
-                            )
-                        else:
-                            app_state.skeleton_layer = widget.viewer.add_points(
-                                skel_im,
-                                size=3,
-                                face_color=face_colors,
-                                scale=app_state.visualization_scale,
-                                name='Skeleton'
-                            )
+                    # Add skeleton as points layer
+                    app_state.skeleton_layer = widget.viewer.add_points(
+                        skel_im,
+                        size=3,
+                        face_color=face_colors,
+                        scale=app_state.visualization_scale,
+                        name='Skeleton'
+                    )
                     
                     # Add extracted points if available
                     if positions and colors:
-
-                        widget.graph_btn.setEnabled(True)
 
                         app_state.points_layer = widget.viewer.add_points(
                             positions,
@@ -125,25 +100,14 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 name='Raw Image'
                             )
 
-                            # Add skeleton edges as Shapes layer
-                            if edge_lines:
-                                app_state.skeleton_layer = widget.viewer.add_shapes(
-                                    edge_lines,
-                                    shape_type='path',
-                                    edge_width=0.2,
-                                    edge_color='red',
-                                    face_color='transparent',
-                                    scale=app_state.visualization_scale,
-                                    name='Skeleton Edges'
-                                )
-                            else:
-                                app_state.skeleton_layer = widget.viewer.add_points(
-                                    skel_im,
-                                    size=3,
-                                    face_color=face_colors,
-                                    scale=app_state.visualization_scale,
-                                    name='Skeleton'
-                                )
+                            # Add skeleton as points layer
+                            app_state.skeleton_layer = widget.viewer.add_points(
+                                skel_im,
+                                size=3,
+                                face_color=face_colors,
+                                scale=app_state.visualization_scale,
+                                name='Skeleton'
+                            )
                             
                             # Add extracted points if available
                             if positions and colors:
@@ -180,25 +144,14 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 name='Raw Image'
                             )
                             
-                            # Add skeleton edges as Shapes layer
-                            if edge_lines:
-                                app_state.skeleton_layer = widget.viewer.add_shapes(
-                                    edge_lines,
-                                    shape_type='path',
-                                    edge_width=0.2,
-                                    edge_color='red',
-                                    face_color='transparent',
-                                    scale=app_state.visualization_scale,
-                                    name='Skeleton Edges'
-                                )
-                            else:
-                                app_state.skeleton_layer = widget.viewer.add_points(
-                                    skel_im,
-                                    size=3,
-                                    face_color=face_colors,
-                                    scale=app_state.visualization_scale,
-                                    name='Skeleton'
-                                )
+                            # Add skeleton as points layer
+                            app_state.skeleton_layer = widget.viewer.add_points(
+                                skel_im,
+                                size=3,
+                                face_color=face_colors,
+                                scale=app_state.visualization_scale,
+                                name='Skeleton'
+                            )
                             
                             # Add extracted points if available
                             if positions and colors:
@@ -305,25 +258,14 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                 name='Raw Image'
                             )
                             
-                            # Add skeleton edges as Shapes layer
-                            if edge_lines:
-                                app_state.skeleton_layer = widget.viewer.add_shapes(
-                                    edge_lines,
-                                    shape_type='path',
-                                    edge_width=0.2,
-                                    edge_color='red',
-                                    face_color='transparent',
-                                    scale=app_state.visualization_scale,
-                                    name='Skeleton Edges'
-                                )
-                            else:
-                                app_state.skeleton_layer = widget.viewer.add_points(
-                                    skel_im,
-                                    size=3,
-                                    face_color=face_colors,
-                                    scale=app_state.visualization_scale,
-                                    name='Skeleton'
-                                )
+                            # Add skeleton as points layer
+                            app_state.skeleton_layer = widget.viewer.add_points(
+                                skel_im,
+                                size=3,
+                                face_color=face_colors,
+                                scale=app_state.visualization_scale,
+                                name='Skeleton'
+                            )
                             
                             # Add extracted points if available
                             if positions and colors:
@@ -368,25 +310,14 @@ def view_clicked(widget,viewer,next_btn,prev_btn,image_slider,image_label,networ
                                                             name='Raw Image'
                                                             )
                                     
-                                    # Add skeleton edges as Shapes layer
-                                    if edge_lines:
-                                        app_state.skeleton_layer = widget.viewer.add_shapes(
-                                            edge_lines,
-                                            shape_type='path',
-                                            edge_width=0.2,
-                                            edge_color='red',
-                                            face_color='transparent',
-                                            scale=app_state.visualization_scale,
-                                            name='Skeleton Edges'
-                                        )
-                                    else:
-                                        app_state.skeleton_layer = widget.viewer.add_points(
-                                            skel_im,
-                                            size=3,
-                                            face_color=face_colors,
-                                            scale=app_state.visualization_scale,
-                                            name='Skeleton'
-                                        )
+                                    # Add skeleton as points layer
+                                    app_state.skeleton_layer = widget.viewer.add_points(
+                                        skel_im,
+                                        size=3,
+                                        face_color=face_colors,
+                                        scale=app_state.visualization_scale,
+                                        name='Skeleton'
+                                    )
                                     
                                     # Add extracted points if available
                                     if positions and colors:

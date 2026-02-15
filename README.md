@@ -115,6 +115,8 @@ your_timeseries_folder/
 
 ## Keybindings
 
+### Network Topology Editing
+
 The following keyboard shortcuts are available for network editing after visualization:
 
 | Key | Function | Requirements |
@@ -122,7 +124,28 @@ The following keyboard shortcuts are available for network editing after visuali
 | **e** | Edit/Highlight connections | Select 1 node on skeleton layer |
 | **u** | Unsee/Clear highlighted connections | Previously highlighted node selected |
 | **j** | Join two nodes (add edge) | Select exactly 2 nodes on skeleton layer |
-| **r** | Remove edge between nodes | Select exactly 2 non-red nodes on skeleton layer |
+| **r** | Remove edge between nodes | Select exactly 2 nodes on skeleton layer |
+| **i** | Insert new node at cursor | Cursor over image |
+| **v** | Toggle insertion preview mode | - |
+| **l** | Lock/unlock Z-plane | - |
+| **x** | Delete selected node | Select 1 node on Extracted Nodes layer |
+
+### Dynamic Event Correction (Time Series Only)
+
+Manual correction of automatically detected dynamic events:
+
+| Key | Function | Requirements |
+|-----|----------|--------------|
+| **Ctrl+i** | Show event information | Select 1 event point on Dynamic Events layer |
+| **d** | Delete selected event | Select 1 event point on Dynamic Events layer |
+| **1** | Add Tip-Edge Fusion at cursor | Cursor over image |
+| **2** | Add Junction Breakage at cursor | Cursor over image |
+| **3** | Add Tip-Tip Fusion at cursor | Cursor over image |
+| **4** | Add Tip-Tip Fission at cursor | Cursor over image |
+| **5** | Add Extrusion at cursor | Cursor over image |
+| **6** | Add Retraction at cursor | Cursor over image |
+
+For detailed event correction workflow, see [EVENT_CORRECTION_GUIDE.md](dynamics/EVENT_CORRECTION_GUIDE.md)
 
 ## Node Color Coding
 

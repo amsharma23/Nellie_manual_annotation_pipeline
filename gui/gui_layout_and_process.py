@@ -165,52 +165,17 @@ class FileLoaderWidget(QWidget):
         slider_layout.addLayout(slider_widget_layout)
         layout.addWidget(self.slider_group)
         
-        # Network section - reorganized
+        # Network section - simplified (removed visualization panel)
         self.network_group = QGroupBox("Network Analysis")
         network_layout = QVBoxLayout()
         self.network_group.setLayout(network_layout)
-        
-        # Network buttons
-        network_btn_layout = QHBoxLayout()
 
+        # Network button
         self.network_btn = QPushButton("Generate Network")
         self.network_btn.clicked.connect(self.on_network_clicked)
         self.network_btn.setEnabled(False)
-        layout.addWidget(self.network_btn)
-        
-        
-        # Network visualization section
-        self.graph_btn = QPushButton("Visualize Graph")
-        self.graph_btn.clicked.connect(self.on_view_graph_clicked)
-        self.graph_btn.setEnabled(False)
-        network_btn_layout.addWidget(self.graph_btn)
-        
-        self.open_graph_btn = QPushButton("Open Graph in New Window")
-        # Connect the signal when method is implemented
-        # self.open_graph_btn.clicked.connect(self.on_open_graph_window_clicked)
-        self.open_graph_btn.setEnabled(False)
-        network_btn_layout.addWidget(self.open_graph_btn)
-        
-        network_layout.addLayout(network_btn_layout)
-        
-        # Graph visualization section
-        self.graph_scroll = QScrollArea()
-        self.graph_scroll.setWidgetResizable(True)
-        self.graph_scroll.setMinimumHeight(150)  # Increased height for better visibility
-        
-        # Container widget for the graph image
-        self.graph_container = QWidget()
-        self.graph_container_layout = QVBoxLayout()
-        self.graph_container.setLayout(self.graph_container_layout)
-        
-        # Label to display the graph image
-        self.graph_image_label = QLabel("No graph generated yet")
-        self.graph_image_label.setAlignment(Qt.AlignCenter)
-        self.graph_container_layout.addWidget(self.graph_image_label)
-        
-        self.graph_scroll.setWidget(self.graph_container)
-        network_layout.addWidget(self.graph_scroll)
-        
+        network_layout.addWidget(self.network_btn)
+
         layout.addWidget(self.network_group)
 
         # Dynamics Analysis section
@@ -247,13 +212,13 @@ class FileLoaderWidget(QWidget):
 
         layout.addWidget(self.dynamics_group)
 
-        # Status section
+        # Status section - expanded (removed height limit for more space)
         self.status_label = QLabel("Status:")  # Store as class attribute
         layout.addWidget(self.status_label)
-        
+
         self.status_text = QTextEdit()
         self.status_text.setReadOnly(True)
-        self.status_text.setMaximumHeight(100)
+        self.status_text.setMinimumHeight(150)  # Increased minimum height
         layout.addWidget(self.status_text)
 
 
@@ -275,7 +240,7 @@ class FileLoaderWidget(QWidget):
     def on_browse_clicked(self):
         """Handle browse button click to select input file or folder."""
         file_path = QFileDialog.getExistingDirectory(self, "Select Folder")
-        browse_folder(self, self.path_label, self.process_btn, self.view_btn, self.network_btn, self.graph_btn, self.type_combo, self.analyze_dynamics_btn, file_path)
+        browse_folder(self, self.path_label, self.process_btn, self.view_btn, self.network_btn, self.type_combo, self.analyze_dynamics_btn, file_path)
             
     def on_process_clicked(self):
         """Handle process button click to run Nellie processing."""
@@ -293,7 +258,7 @@ class FileLoaderWidget(QWidget):
             return
         else:
             network_click(self)
-            
+
     def on_prev_clicked(self):
         """Handle previous button click to show previous image."""
         current = self.image_slider.value()
@@ -324,10 +289,6 @@ class FileLoaderWidget(QWidget):
         current = self.image_slider.value()
         viewer = self.viewer
         update_image(self,viewer,current,index)
-    
-    def on_view_graph_clicked(self):
-        """Handle view graph button click to visualize the network graph."""
-        view_graph(self)
 
     def on_analyze_dynamics_clicked(self):
         """Handle analyze dynamics button click to run dynamics analysis."""
