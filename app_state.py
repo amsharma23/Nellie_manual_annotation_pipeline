@@ -42,6 +42,11 @@ class AppState:
         # Dynamics analysis parameters
         self.distance_threshold = 5.0  # pixels - spatial matching threshold for nodes
         self.persistence_window = 1    # frames - validation window for events
+        # 4D time series state (populated when a Time Series is viewed as a 4D stack)
+        self.timepoint_paths = []        # list[str]: nellie_output_path per frame, indexed by T
+        self.ts_per_frame = []           # list[dict]: cached _load_frame_data output per frame
+        self.is_timeseries_4d = False    # True while the 4D stacked view is active
+        self.skeleton_coords_per_frame = []  # list[np.ndarray (N_t, 3)]: per-frame skeleton voxels
 
     @property
     def visualization_scale(self):
@@ -79,5 +84,9 @@ class AppState:
         self.dynamics_events = None
         self.dynamics_analysis_results = None
         self.skeleton_coords = None
+        self.timepoint_paths = []
+        self.ts_per_frame = []
+        self.is_timeseries_4d = False
+        self.skeleton_coords_per_frame = []
 
 app_state = AppState()

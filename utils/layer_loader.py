@@ -302,6 +302,234 @@ def load_image_and_skeleton(nellie_output_path):
         return None, None, [], [], [], []
 
 
+def _load_frame_data(nellie_output_path):
+    """Load raw, skeleton-voxel coords, face colors, node positions/colors, and
+    edge lines for a single timepoint's nellie output folder.
+
+    Returns
+    -------
+    dict or None
+        Keys: raw, skel_coords (N,3 int), face_colors (list), positions (list of [z,y,x]),
+        colors (list), edge_lines (list of paths in [z,y,x]), node_df (DataFrame),
+        nellie_output_path. None if anything required is missing.
+    """
+    try:
+        tif_files = os.listdir(nellie_output_path)
+        raw_files = [f for f in tif_files if f.endswith('-ch0.ome.tif')]
+        skel_files = [f for f in tif_files if f.endswith('-ch0-im_pixel_class.ome.tif')]
+        if not raw_files or not skel_files:
+            return None
+        raw_file = raw_files[0]
+        skel_file = skel_files[0]
+        basename = raw_file.split('.')[0]
+
+        raw_im_path = os.path.join(nellie_output_path, raw_file)
+        skel_im_path = os.path.join(nellie_output_path, skel_file)
+
+        raw_im = imread(raw_im_path)
+        skel_im_raw = imread(skel_im_path)
+        skel_coords = np.transpose(np.nonzero(skel_im_raw))  # (N, 3) ints
+
+        # Make/ensure extracted CSV exists
+        node_path_extracted = os.path.join(nellie_output_path, f"{basename}_extracted.csv")
+        adjacency_path = os.path.join(nellie_output_path, f"{basename}_adjacency_list.csv")
+
+        if os.path.exists(adjacency_path) and not os.path.exists(node_path_extracted):
+            adjacency_to_extracted(node_path_extracted, adjacency_path)
+
+        face_colors = ['red' for _ in range(len(skel_coords))]
+        positions = []
+        colors = []
+        edge_lines = []
+        node_df = None
+
+        if os.path.exists(node_path_extracted):
+            node_df = pd.read_csv(node_path_extracted)
+            # ensure 'Node ID' column exists
+            if 'Node ID' not in node_df.columns:
+                if 'node' in node_df.columns:
+                    node_df.rename(columns={'node': 'Node ID'}, inplace=True)
+                else:
+                    node_df = node_df.reset_index(drop=True)
+                    node_df['Node ID'] = node_df.index + 1
+            try:
+                node_df['Node ID'] = node_df['Node ID'].astype(int)
+            except Exception:
+                pass
+
+            if not node_df.empty and not pd.isna(node_df.index.max()):
+                pos_extracted = node_df['Position(ZXY)'].values
+                deg_extracted = node_df['Degree of Node'].values.astype(int)
+                positions = [get_float_pos_comma(el) for el in pos_extracted]
+                for degree in deg_extracted:
+                    if degree == 1:
+                        colors.append('blue')
+                    elif degree == 0:
+                        colors.append('white')
+                    elif degree == 2:
+                        colors.append('magenta')
+                    else:
+                        colors.append('green')
+
+                # Color skeleton voxels where they coincide with nodes
+                position_color_map = {tuple(p): c for p, c in zip(positions, colors)}
+                for i, point in enumerate(skel_coords):
+                    pt = tuple(point.tolist())
+                    if pt in position_color_map:
+                        face_colors[i] = position_color_map[pt]
+
+                edge_lines = generate_edge_lines(node_df, skeleton_coords=skel_coords)
+        else:
+            # Create empty extracted CSV so downstream code finds it
+            pd.DataFrame(columns=['Node ID', 'Degree of Node', 'Position(ZXY)']).to_csv(
+                node_path_extracted, index=False
+            )
+
+        return {
+            'raw': raw_im,
+            'skel_coords': skel_coords,
+            'face_colors': face_colors,
+            'positions': positions,
+            'colors': colors,
+            'edge_lines': edge_lines,
+            'node_df': node_df,
+            'nellie_output_path': nellie_output_path,
+            'basename': basename,
+        }
+    except Exception as e:
+        show_error(f"Error loading frame at {nellie_output_path}: {e}")
+        return None
+
+
+def load_timeseries_4d(loaded_folder):
+    """Load an entire time series as 4D-stacked arrays for napari.
+
+    Walks numeric subdirectories (1, 2, 3, ...) of `loaded_folder`, expecting
+    each to contain a `nellie_output/nellie_necessities/` folder. Refuses to
+    load if frames have mismatched (Z, Y, X) shapes.
+
+    Returns
+    -------
+    dict with keys:
+        raw_4d           : np.ndarray, shape (T, Z, Y, X)
+        skel_points      : np.ndarray, shape (N, 4), columns [t, z, y, x]
+        face_colors      : list, length N
+        node_points      : np.ndarray, shape (M, 4)
+        node_colors      : list, length M
+        edge_lines_4d    : list of 4D paths, each shape (K, 4)
+        timepoint_paths  : list[str], one nellie_output_path per frame
+        skel_per_frame   : list[np.ndarray (N_t, 3)]   skeleton coords per frame
+        per_frame        : list[dict]                  raw _load_frame_data outputs
+    Or None on failure.
+    """
+    if not os.path.exists(loaded_folder):
+        show_error(f"Folder not found: {loaded_folder}")
+        return None
+
+    subdirs = [d for d in os.listdir(loaded_folder)
+               if os.path.isdir(os.path.join(loaded_folder, d)) and d.isdigit()]
+    if not subdirs:
+        show_error("No numeric timepoint subfolders found.")
+        return None
+
+    from natsort import natsorted
+    subdirs = natsorted(subdirs)
+
+    per_frame = []
+    timepoint_paths = []
+    for sub in subdirs:
+        nop = os.path.join(loaded_folder, sub, 'nellie_output', 'nellie_necessities')
+        if not os.path.exists(nop):
+            show_warning(f"Skipping timepoint {sub}: no nellie_necessities folder.")
+            continue
+        data = _load_frame_data(nop)
+        if data is None:
+            show_warning(f"Skipping timepoint {sub}: required files missing.")
+            continue
+        per_frame.append(data)
+        timepoint_paths.append(nop)
+
+    if not per_frame:
+        show_error("No loadable timepoints found.")
+        return None
+
+    # Refuse on shape mismatch
+    shape0 = per_frame[0]['raw'].shape
+    for i, d in enumerate(per_frame[1:], start=1):
+        if d['raw'].shape != shape0:
+            show_error(
+                f"Shape mismatch: timepoint 1 is {shape0}, timepoint {i+1} is "
+                f"{d['raw'].shape}. Refusing to load."
+            )
+            return None
+
+    raw_4d = np.stack([d['raw'] for d in per_frame], axis=0)  # (T, Z, Y, X)
+
+    # 4D skeleton points: prefix each frame's skel_coords with its t index
+    skel_pts_parts = []
+    face_colors_all = []
+    skel_per_frame = []
+    for t, d in enumerate(per_frame):
+        sc = d['skel_coords']
+        skel_per_frame.append(sc)
+        if len(sc) == 0:
+            continue
+        t_col = np.full((sc.shape[0], 1), t, dtype=sc.dtype)
+        skel_pts_parts.append(np.hstack([t_col, sc]))
+        face_colors_all.extend(d['face_colors'])
+    if skel_pts_parts:
+        skel_points = np.concatenate(skel_pts_parts, axis=0)
+    else:
+        skel_points = np.zeros((0, 4), dtype=int)
+
+    # 4D node points
+    node_pts_parts = []
+    node_colors_all = []
+    for t, d in enumerate(per_frame):
+        for pos, col in zip(d['positions'], d['colors']):
+            node_pts_parts.append([t, pos[0], pos[1], pos[2]])
+            node_colors_all.append(col)
+    if node_pts_parts:
+        node_points = np.array(node_pts_parts, dtype=float)
+    else:
+        node_points = np.zeros((0, 4), dtype=float)
+
+    # 4D edge lines
+    edge_lines_4d = []
+    for t, d in enumerate(per_frame):
+        for path in d['edge_lines']:
+            path_4d = [[t, p[0], p[1], p[2]] for p in path]
+            edge_lines_4d.append(path_4d)
+
+    return {
+        'raw_4d': raw_4d,
+        'skel_points': skel_points,
+        'face_colors': face_colors_all,
+        'node_points': node_points,
+        'node_colors': node_colors_all,
+        'edge_lines_4d': edge_lines_4d,
+        'timepoint_paths': timepoint_paths,
+        'skel_per_frame': skel_per_frame,
+        'per_frame': per_frame,
+    }
+
+
+def refresh_frame_in_4d(frame_index, layer_skel=None, layer_nodes=None,
+                       skel_data_state=None, node_data_state=None,
+                       face_colors_state=None, node_colors_state=None,
+                       edge_lines_state=None):
+    """Re-read one frame's CSV and update the in-memory 4D arrays / lists.
+
+    Returns updated (skel_data, node_data, face_colors, node_colors, edge_lines).
+    Pure helper — call sites set the napari layers from the returned arrays.
+    """
+    # Implemented in the caller for simplicity; this is a stub for symmetry.
+    raise NotImplementedError(
+        "refresh_frame_in_4d is implemented inline in the caller "
+        "(update_display_mod.refresh_4d_frame)."
+    )
+
+
 def load_dynamics_events_layer(viewer, current_timepoint=None):
     """
     Load dynamic events as color-coded points layer in the Napari viewer.
@@ -451,6 +679,89 @@ def extract_event_points(df, config, current_timepoint=None, csv_file=None):
             })
 
     return points, colors, properties
+
+
+def load_dynamics_events_layer_4d(viewer):
+    """Load all dynamic events as a single 4D points layer (T, Z, Y, X).
+
+    Reads the same event CSVs as load_dynamics_events_layer but emits one
+    combined points layer with a T column so napari's native T-slider
+    filters them automatically.
+    """
+    if not app_state.loaded_folder:
+        return False
+
+    dynamics_folder = app_state.loaded_folder
+    event_types = {
+        'tip_edge_fusion_events.csv': {'color': 'gold', 'name': 'Tip-Edge Fusion'},
+        'junction_breakage_events.csv': {'color': 'darkorange', 'name': 'Junction Breakage'},
+        'tip_tip_fusion_events.csv': {'color': 'purple', 'name': 'Tip-Tip Fusion'},
+        'tip_tip_fission_events.csv': {'color': 'turquoise', 'name': 'Tip-Tip Fission'},
+        'extrusion_events.csv': {'color': 'lime', 'name': 'Extrusion'},
+        'retraction_events.csv': {'color': 'olive', 'name': 'Retraction'},
+    }
+
+    all_points = []
+    all_colors = []
+    all_properties = []
+
+    try:
+        for csv_file, config in event_types.items():
+            csv_path = os.path.join(dynamics_folder, csv_file)
+            if not os.path.exists(csv_path):
+                continue
+            df = pd.read_csv(csv_path)
+            if df.empty:
+                continue
+
+            # Emit one point per event at timepoint_2, with [t, z, y, x] coords
+            pts, cols, props = extract_event_points(df, config, None, csv_file)
+            # extract_event_points returns 3D [z, y, x] - we need to add the
+            # T coordinate from each event's timepoint
+            for pt, col, prop in zip(pts, cols, props):
+                tp = prop.get('timepoint')
+                if tp is None:
+                    continue
+                # convert 1-indexed timepoint (matches subdir naming) to 0-indexed T axis
+                t_idx = int(tp) - 1
+                all_points.append([t_idx, pt[0], pt[1], pt[2]])
+                all_colors.append(col)
+                all_properties.append(prop)
+
+        if not all_points:
+            return False
+
+        # Replace any existing Dynamic Events layer
+        if "Dynamic Events" in [layer.name for layer in viewer.layers]:
+            viewer.layers.remove("Dynamic Events")
+
+        points_array = np.array(all_points)
+        properties_dict = {
+            'event_type': [p['event_type'] for p in all_properties],
+            'timepoint': [p['timepoint'] for p in all_properties],
+            'csv_row_index': [p['csv_row_index'] for p in all_properties],
+            'csv_file': [p['csv_file'] for p in all_properties],
+        }
+
+        # 4D scale: T is unitless, Z/Y/X follow the usual visualization scale
+        scale_4d = [1] + list(app_state.visualization_scale)
+
+        viewer.add_points(
+            points_array,
+            properties=properties_dict,
+            face_color=all_colors,
+            size=8,
+            opacity=0.5,
+            scale=scale_4d,
+            name="Dynamic Events",
+        )
+
+        show_info(f"Loaded {len(all_points)} dynamic events across all timepoints.")
+        return True
+
+    except Exception as e:
+        show_error(f"Error loading dynamics events (4D): {e}")
+        return False
 
 
 def parse_position(position):

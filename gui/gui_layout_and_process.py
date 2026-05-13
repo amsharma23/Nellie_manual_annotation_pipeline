@@ -265,9 +265,8 @@ class FileLoaderWidget(QWidget):
         if current > 1:
             self.next_btn.setEnabled(True)
             self.image_slider.setValue(current - 1)
-        elif (current) == 0:
-            self.prev_btn.setEnabled(False)            
-            self.log_status('Reached End of Time Series')
+        elif current == 1:
+            self.log_status('Reached Beginning of Time Series')
 
     def on_next_clicked(self):
         """Handle next button click to show next image."""
@@ -275,15 +274,58 @@ class FileLoaderWidget(QWidget):
         if current < self.image_slider.maximum():
             self.prev_btn.setEnabled(True)
             self.image_slider.setValue(current + 1)
-        elif (current) == self.image_slider.maximum():
-            self.next_btn.setEnabled(False)            
+        elif current == self.image_slider.maximum():
             self.log_status('Reached End of Time Series')
-            
+
     def on_slider_changed(self, value):
         """Handle slider value change to update displayed image."""
         self.image_label.setText(f"Current Image: {value}/{self.image_slider.maximum()}")
-        self.update_displayed_image(value - 1)  # Convert to 0-based index
-        
+        # In 4D mode, just move napari's T axis — no per-frame reload.
+        if app_state.is_timeseries_4d:
+            self.set_current_timepoint(value - 1, source='slider')
+            return
+        # Legacy 3D path (Single TIFF or non-4D Time Series fallback)
+        self.update_displayed_image(value - 1)
+
+    def set_current_timepoint(self, t_idx, source='slider'):
+        """Single source of truth for the current Time Series timepoint.
+
+        Updates napari's T axis (if needed), the side-panel slider/label, and
+        the per-frame fields on app_state. ``source`` indicates which control
+        initiated the change so we don't re-emit signals back to it.
+        """
+        if not app_state.is_timeseries_4d:
+            return
+        if t_idx < 0 or t_idx >= len(app_state.timepoint_paths):
+            return
+
+        app_state.current_image_index = t_idx
+        app_state.nellie_output_path = app_state.timepoint_paths[t_idx]
+        if app_state.skeleton_coords_per_frame and t_idx < len(app_state.skeleton_coords_per_frame):
+            app_state.skeleton_coords = app_state.skeleton_coords_per_frame[t_idx]
+        if app_state.ts_per_frame and t_idx < len(app_state.ts_per_frame):
+            app_state.node_dataframe = app_state.ts_per_frame[t_idx].get('node_df')
+
+        # Mirror the side-panel slider (silent if it came from there)
+        if source != 'slider':
+            self.image_slider.blockSignals(True)
+            self.image_slider.setValue(t_idx + 1)
+            self.image_slider.blockSignals(False)
+        self.image_label.setText(
+            f"Current Image: {t_idx + 1}/{self.image_slider.maximum()}"
+        )
+        # Enable/disable nav buttons based on bounds
+        self.prev_btn.setEnabled(t_idx > 0)
+        self.next_btn.setEnabled(t_idx < self.image_slider.maximum() - 1)
+
+        # Mirror napari's T axis (silent if it came from there)
+        if source != 'napari':
+            try:
+                if int(self.viewer.dims.current_step[0]) != t_idx:
+                    self.viewer.dims.set_current_step(0, t_idx)
+            except Exception:
+                pass
+
     def update_displayed_image(self, index):
         """Update the displayed image based on slider index."""
         current = self.image_slider.value()

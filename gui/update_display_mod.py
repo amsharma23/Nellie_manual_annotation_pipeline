@@ -1,5 +1,10 @@
 from app_state import app_state
-from utils.layer_loader import load_image_and_skeleton, load_dynamics_events_layer
+from utils.layer_loader import (
+    load_image_and_skeleton,
+    load_dynamics_events_layer,
+    load_dynamics_events_layer_4d,
+    _load_frame_data,
+)
 from natsort import natsorted
 import os
 from modifying_topology.edit_node import highlight
@@ -71,7 +76,17 @@ def reload_visualization_with_state_preservation(widget):
 
 
 def reload_visualization(widget):
-    """Reload the visualization after modifications"""
+    """Reload the visualization after modifications.
+
+    In 4D Time Series mode: refresh only the current frame's CSV and rebuild
+    the 4D points/edges arrays in place, preserving the napari T-slider
+    position.
+    Otherwise (Single TIFF / legacy 3D path): clear all layers and re-add.
+    """
+    if app_state.is_timeseries_4d:
+        refresh_4d_current_frame(widget)
+        return
+
     widget.viewer.layers.clear()
     raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(
         app_state.nellie_output_path
@@ -79,6 +94,110 @@ def reload_visualization(widget):
 
     if raw_im is not None and skel_im is not None:
         add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, edge_lines)
+
+
+def refresh_4d_current_frame(widget):
+    """Re-read the current frame's CSV and update the 4D Points/Shapes layers.
+
+    Leaves the Raw Image layer alone (the raw pixels never change) and only
+    rebuilds Skeleton, Extracted Nodes, and Edges. Preserves the current T
+    slider position.
+    """
+    t = app_state.current_image_index
+    if t is None or t < 0 or t >= len(app_state.timepoint_paths):
+        return
+
+    nop = app_state.timepoint_paths[t]
+    fresh = _load_frame_data(nop)
+    if fresh is None:
+        return
+
+    # Update cached per-frame data
+    app_state.ts_per_frame[t] = fresh
+    app_state.skeleton_coords_per_frame[t] = fresh['skel_coords']
+    app_state.skeleton_coords = fresh['skel_coords']
+    app_state.node_dataframe = fresh.get('node_df')
+
+    # Rebuild full 4D arrays from the cache
+    skel_pts_parts = []
+    face_colors_all = []
+    for ti, d in enumerate(app_state.ts_per_frame):
+        sc = d['skel_coords']
+        if len(sc) == 0:
+            continue
+        t_col = np.full((sc.shape[0], 1), ti, dtype=sc.dtype)
+        skel_pts_parts.append(np.hstack([t_col, sc]))
+        face_colors_all.extend(d['face_colors'])
+    skel_points = (
+        np.concatenate(skel_pts_parts, axis=0)
+        if skel_pts_parts else np.zeros((0, 4), dtype=int)
+    )
+
+    node_pts_parts = []
+    node_colors_all = []
+    for ti, d in enumerate(app_state.ts_per_frame):
+        for pos, col in zip(d['positions'], d['colors']):
+            node_pts_parts.append([ti, pos[0], pos[1], pos[2]])
+            node_colors_all.append(col)
+    node_points = (
+        np.array(node_pts_parts, dtype=float)
+        if node_pts_parts else np.zeros((0, 4), dtype=float)
+    )
+
+    edge_lines_4d = []
+    for ti, d in enumerate(app_state.ts_per_frame):
+        for path in d['edge_lines']:
+            edge_lines_4d.append([[ti, p[0], p[1], p[2]] for p in path])
+
+    layers_by_name = {layer.name: layer for layer in widget.viewer.layers}
+
+    # Skeleton layer
+    if 'Skeleton' in layers_by_name and len(skel_points) > 0:
+        try:
+            layers_by_name['Skeleton'].data = skel_points
+            layers_by_name['Skeleton'].face_color = face_colors_all
+        except Exception:
+            pass
+
+    # Extracted Nodes layer
+    if 'Extracted Nodes' in layers_by_name and len(node_points) > 0:
+        try:
+            layers_by_name['Extracted Nodes'].data = node_points
+            layers_by_name['Extracted Nodes'].face_color = node_colors_all
+        except Exception:
+            pass
+    elif 'Extracted Nodes' not in layers_by_name and len(node_points) > 0:
+        scale_4d = [1] + list(app_state.visualization_scale)
+        app_state.points_layer = widget.viewer.add_points(
+            node_points,
+            size=5,
+            face_color=node_colors_all,
+            scale=scale_4d,
+            name='Extracted Nodes',
+        )
+
+    # Edges layer (recreate; updating Shapes data in-place is brittle across napari versions)
+    if 'Edges' in layers_by_name:
+        try:
+            widget.viewer.layers.remove('Edges')
+        except Exception:
+            pass
+    if edge_lines_4d:
+        scale_4d = [1] + list(app_state.visualization_scale)
+        try:
+            widget.viewer.add_shapes(
+                edge_lines_4d,
+                shape_type='path',
+                edge_color='yellow',
+                edge_width=0.5,
+                scale=scale_4d,
+                name='Edges',
+            )
+        except Exception:
+            pass
+
+    # Dynamic Events stay 4D too — refresh
+    load_dynamics_events_layer_4d(widget.viewer)
 
 
 def add_image_layers(widget, raw_im, skel_im, face_colors, positions, colors, edge_lines):
