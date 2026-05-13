@@ -144,11 +144,6 @@ def refresh_4d_current_frame(widget):
         if node_pts_parts else np.zeros((0, 4), dtype=float)
     )
 
-    edge_lines_4d = []
-    for ti, d in enumerate(app_state.ts_per_frame):
-        for path in d['edge_lines']:
-            edge_lines_4d.append([[ti, p[0], p[1], p[2]] for p in path])
-
     layers_by_name = {layer.name: layer for layer in widget.viewer.layers}
 
     # Skeleton layer
@@ -175,26 +170,6 @@ def refresh_4d_current_frame(widget):
             scale=scale_4d,
             name='Extracted Nodes',
         )
-
-    # Edges layer (recreate; updating Shapes data in-place is brittle across napari versions)
-    if 'Edges' in layers_by_name:
-        try:
-            widget.viewer.layers.remove('Edges')
-        except Exception:
-            pass
-    if edge_lines_4d:
-        scale_4d = [1] + list(app_state.visualization_scale)
-        try:
-            widget.viewer.add_shapes(
-                edge_lines_4d,
-                shape_type='path',
-                edge_color='yellow',
-                edge_width=0.5,
-                scale=scale_4d,
-                name='Edges',
-            )
-        except Exception:
-            pass
 
     # Dynamic Events stay 4D too — refresh
     load_dynamics_events_layer_4d(widget.viewer)

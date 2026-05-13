@@ -6,7 +6,7 @@ A graphical user interface application for manual network analysis and topology 
 
 ### Core Functionality
 - **Network Analysis**: Process mitochondrial 3D images using the Nellie pipeline for skeleton extraction and network generation
-- **Interactive Visualization**: Built on Napari for intuitive image viewing and manipulation
+- **Interactive Visualization**: Built on Napari for intuitive image viewing and manipulation. Time series datasets are loaded as a single 4D (T, Z, Y, X) stack so the native napari time slider, arrow keys, and animation controls all work out of the box.
 - **Manual Network Editing**: Tools to manually modify network topology including:
   - Add/remove nodes and edges
   - Add junction points and tips
@@ -112,6 +112,19 @@ your_timeseries_folder/
 3. **Process Networks**: Run Nellie processing pipeline to extract network skeletons
 4. **Manual Editing**: Use the topology modification tools to refine networks
 5. **Analyze Dynamics**: Study temporal changes using the dynamics analysis tools (Time Series only)
+
+## Time Series Navigation
+
+When a **Time Series** folder is loaded, all timepoints are stacked into a single 4D (T, Z, Y, X) napari layer rather than being loaded one frame at a time. This means you can navigate frames using any of:
+
+- **Napari's native T-slider** at the bottom of the viewer (drag, animate, scrub)
+- **Left / Right arrow keys** (napari's default for stepping the active axis)
+- **Prev / Next buttons** in the side panel
+- **The image_slider spinbox** in the side panel
+
+All four controls are kept in sync — moving any one updates the others. The `Skeleton`, `Extracted Nodes`, and `Dynamic Events` overlay layers are also 4D, so they automatically show only the points belonging to the current timepoint. All editing keybindings (below) and the dynamics event keys (`1`–`6`, `d`, `Ctrl+i`) operate on whichever frame is currently displayed.
+
+**Requirements:** every frame must have the same `(Z, Y, X)` shape. If shapes differ, the time series will refuse to load and an error is shown.
 
 ## Keybindings
 

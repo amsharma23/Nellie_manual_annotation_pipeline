@@ -259,21 +259,6 @@ def _view_timeseries_4d(widget, viewer, next_btn, prev_btn,
             name='Extracted Nodes',
         )
 
-    # 4) Edge lines (4D shapes layer) — visualises connectivity per frame
-    if ts['edge_lines_4d']:
-        try:
-            viewer.add_shapes(
-                ts['edge_lines_4d'],
-                shape_type='path',
-                edge_color='yellow',
-                edge_width=0.5,
-                scale=scale_4d,
-                name='Edges',
-            )
-        except Exception:
-            # Some napari versions reject inhomogeneous paths; ignore silently.
-            pass
-
     # Dynamic events as a single 4D layer (no-op if no events present)
     load_dynamics_events_layer_4d(viewer)
 
