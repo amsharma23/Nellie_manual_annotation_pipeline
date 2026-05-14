@@ -113,6 +113,22 @@ your_timeseries_folder/
 4. **Manual Editing**: Use the topology modification tools to refine networks
 5. **Analyze Dynamics**: Study temporal changes using the dynamics analysis tools (Time Series only)
 
+## Time Series Processing (Parallel)
+
+When you click **Run Nellie Processing** on a **Time Series** folder, each timepoint is processed in a separate worker process via a `concurrent.futures.ProcessPoolExecutor` (with macOS's `spawn` start method). By default the pool uses `os.cpu_count() - 1` workers, so on an 8-core machine 7 frames run concurrently. Each frame's outputs land in its own `<N>/nellie_output/nellie_necessities/` folder exactly as in serial mode.
+
+Progress is reported per-frame in the status log (`[k/N] Done: time point M` or `FAILED ...`). The Qt event loop is pumped between completions so log lines appear as the workers finish, though the rest of the GUI may be unresponsive while the pool is running.
+
+**When does parallel help?** It depends on per-frame work vs. worker spin-up. Spawning a fresh Python process and importing Nellie + scipy + skimage + torch costs ~1–1.5 s per worker. So:
+
+- For tiny single-cell crops (~1 MB / frame, ~0.2 s of pipeline work) parallel may be a small loss — spin-up dominates.
+- For typical mito 3D stacks (~5–10 MB / frame) parallel is a clear win — expect roughly 5–8× faster on an 8-core Mac.
+- For large deskewed volumes (≥50 MB / frame), parallel is essentially `serial / num_workers`.
+
+**Single TIFF** mode is unchanged — it runs serially in the GUI process.
+
+To change the worker count, edit `_choose_worker_count()` in `gui/process_image.py`.
+
 ## Time Series Navigation
 
 When a **Time Series** folder is loaded, all timepoints are stacked into a single 4D (T, Z, Y, X) napari layer rather than being loaded one frame at a time. This means you can navigate frames using any of:
