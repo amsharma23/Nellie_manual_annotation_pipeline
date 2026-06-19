@@ -395,10 +395,226 @@ def _load_frame_data(nellie_output_path):
             'node_df': node_df,
             'nellie_output_path': nellie_output_path,
             'basename': basename,
+            'extracted_csv': node_path_extracted,
         }
     except Exception as e:
         show_error(f"Error loading frame at {nellie_output_path}: {e}")
         return None
+
+
+def _build_frame_dict(skel_coords, extracted_csv, adjacency_csv, out_dir, basename):
+    """Build a per-frame data dict from skeleton voxels + a per-frame CSV.
+
+    Shared by the 4D-Stack loader (`_load_frame_from_3d`) and the post-edit
+    refresh (`reload_frame_csv_4dstack`). The ``raw`` key is left as None for
+    the caller to fill in (the refresh path doesn't re-read pixels).
+
+    Returns a dict with the same keys as `_load_frame_data`.
+    """
+    face_colors = ['red' for _ in range(len(skel_coords))]
+    positions = []
+    colors = []
+    edge_lines = []
+    node_df = None
+
+    if os.path.exists(adjacency_csv) and not os.path.exists(extracted_csv):
+        adjacency_to_extracted(extracted_csv, adjacency_csv)
+
+    if os.path.exists(extracted_csv):
+        node_df = pd.read_csv(extracted_csv)
+        if 'Node ID' not in node_df.columns:
+            if 'node' in node_df.columns:
+                node_df.rename(columns={'node': 'Node ID'}, inplace=True)
+            else:
+                node_df = node_df.reset_index(drop=True)
+                node_df['Node ID'] = node_df.index + 1
+        try:
+            node_df['Node ID'] = node_df['Node ID'].astype(int)
+        except Exception:
+            pass
+
+        if not node_df.empty and not pd.isna(node_df.index.max()):
+            pos_extracted = node_df['Position(ZXY)'].values
+            deg_extracted = node_df['Degree of Node'].values.astype(int)
+            positions = [get_float_pos_comma(el) for el in pos_extracted]
+            for degree in deg_extracted:
+                if degree == 1:
+                    colors.append('blue')
+                elif degree == 0:
+                    colors.append('white')
+                elif degree == 2:
+                    colors.append('magenta')
+                else:
+                    colors.append('green')
+
+            position_color_map = {tuple(p): c for p, c in zip(positions, colors)}
+            for i, point in enumerate(skel_coords):
+                pt = tuple(point.tolist())
+                if pt in position_color_map:
+                    face_colors[i] = position_color_map[pt]
+
+            edge_lines = generate_edge_lines(node_df, skeleton_coords=skel_coords)
+    else:
+        # Create an empty extracted CSV so editing tools have a target.
+        pd.DataFrame(columns=['Node ID', 'Degree of Node', 'Position(ZXY)']).to_csv(
+            extracted_csv, index=False
+        )
+
+    return {
+        'raw': None,
+        'skel_coords': skel_coords,
+        'face_colors': face_colors,
+        'positions': positions,
+        'colors': colors,
+        'edge_lines': edge_lines,
+        'node_df': node_df,
+        'nellie_output_path': out_dir,
+        'basename': basename,
+        'extracted_csv': extracted_csv,
+    }
+
+
+def _frame_csv_names(out_dir, pixel_class_basename, t_idx):
+    """Return (extracted_csv, adjacency_csv) paths for a 4D-stack frame."""
+    stem = f"{pixel_class_basename}_t{t_idx:04d}"
+    return (
+        os.path.join(out_dir, f"{stem}_extracted.csv"),
+        os.path.join(out_dir, f"{stem}_adjacency_list.csv"),
+    )
+
+
+def _load_frame_from_3d(raw3d, skel3d, out_dir, pixel_class_basename, t_idx):
+    """Build one 4D-stack frame's data dict from sliced 3D raw/skeleton arrays."""
+    skel_coords = np.transpose(np.nonzero(skel3d))  # (N, 3) ints, (Z, Y, X)
+    extracted_csv, adjacency_csv = _frame_csv_names(out_dir, pixel_class_basename, t_idx)
+    d = _build_frame_dict(
+        skel_coords, extracted_csv, adjacency_csv, out_dir,
+        f"{pixel_class_basename}_t{t_idx:04d}",
+    )
+    d['raw'] = raw3d
+    return d
+
+
+def reload_frame_csv_4dstack(t_idx):
+    """Re-read one 4D-stack frame's extracted CSV using cached skeleton voxels.
+
+    Used after a manual edit to refresh just that frame without re-reading the
+    (unchanged) raw/skeleton pixels. Returns a per-frame data dict, or None.
+    """
+    if t_idx is None or t_idx < 0 or t_idx >= len(app_state.skeleton_coords_per_frame):
+        return None
+    skel_coords = app_state.skeleton_coords_per_frame[t_idx]
+    extracted_csv, adjacency_csv = _frame_csv_names(
+        app_state.single_output_path, app_state.pixel_class_basename, t_idx
+    )
+    return _build_frame_dict(
+        skel_coords, extracted_csv, adjacency_csv,
+        app_state.single_output_path, f"{app_state.pixel_class_basename}_t{t_idx:04d}",
+    )
+
+
+def load_4d_stack(nellie_output_path):
+    """Load a single 4D Nellie output folder as 4D-stacked arrays for napari.
+
+    Expects the folder to contain a 4D raw ``-ch0.ome.tif`` and a 4D
+    ``-ch0-im_pixel_class.ome.tif`` (both shaped (T, Z, Y, X)). Per-frame node
+    data is read from ``{pixel_class_basename}_t{idx:04d}_extracted.csv`` files
+    in the same folder (written by `processing.network_generator.get_network`).
+
+    Returns a dict mirroring `load_timeseries_4d`, plus:
+        single_output_path      : the one nellie folder
+        frame_csv_paths         : list[str] per-frame extracted CSV path
+        pixel_class_basename    : str basename driving per-frame CSV names
+    Or None on failure.
+    """
+    if not nellie_output_path or not os.path.exists(nellie_output_path):
+        show_error(f"4D output folder not found: {nellie_output_path}")
+        return None
+
+    files = os.listdir(nellie_output_path)
+    raw_files = [f for f in files if f.endswith('-ch0.ome.tif')]
+    skel_files = [f for f in files if f.endswith('-ch0-im_pixel_class.ome.tif')]
+    if not raw_files or not skel_files:
+        show_error("4D stack: raw or pixel-class file missing in output folder.")
+        return None
+
+    raw_path = os.path.join(nellie_output_path, raw_files[0])
+    skel_path = os.path.join(nellie_output_path, skel_files[0])
+    pixel_class_basename = skel_files[0].split('.')[0]
+
+    raw_4d = imread(raw_path)
+    skel_4d = imread(skel_path)
+
+    if raw_4d.ndim != 4:
+        show_error(
+            f"Expected a 4D raw image (T, Z, Y, X) but got shape {raw_4d.shape}. "
+            f"Is this actually a 4D stack?"
+        )
+        return None
+    if skel_4d.ndim != 4 or skel_4d.shape[0] != raw_4d.shape[0]:
+        show_error(
+            f"Pixel-class shape {skel_4d.shape} does not match raw {raw_4d.shape}."
+        )
+        return None
+
+    num_t = raw_4d.shape[0]
+    per_frame = []
+    frame_csv_paths = []
+    skel_per_frame = []
+    for t in range(num_t):
+        d = _load_frame_from_3d(raw_4d[t], skel_4d[t], nellie_output_path,
+                                pixel_class_basename, t)
+        per_frame.append(d)
+        frame_csv_paths.append(d['extracted_csv'])
+        skel_per_frame.append(d['skel_coords'])
+
+    # 4D skeleton points: prefix each frame's skel_coords with its t index
+    skel_pts_parts = []
+    face_colors_all = []
+    for t, d in enumerate(per_frame):
+        sc = d['skel_coords']
+        if len(sc) == 0:
+            continue
+        t_col = np.full((sc.shape[0], 1), t, dtype=sc.dtype)
+        skel_pts_parts.append(np.hstack([t_col, sc]))
+        face_colors_all.extend(d['face_colors'])
+    skel_points = (
+        np.concatenate(skel_pts_parts, axis=0)
+        if skel_pts_parts else np.zeros((0, 4), dtype=int)
+    )
+
+    # 4D node points
+    node_pts_parts = []
+    node_colors_all = []
+    for t, d in enumerate(per_frame):
+        for pos, col in zip(d['positions'], d['colors']):
+            node_pts_parts.append([t, pos[0], pos[1], pos[2]])
+            node_colors_all.append(col)
+    node_points = (
+        np.array(node_pts_parts, dtype=float)
+        if node_pts_parts else np.zeros((0, 4), dtype=float)
+    )
+
+    # 4D edge lines (computed for parity; not currently displayed)
+    edge_lines_4d = []
+    for t, d in enumerate(per_frame):
+        for path in d['edge_lines']:
+            edge_lines_4d.append([[t, p[0], p[1], p[2]] for p in path])
+
+    return {
+        'raw_4d': raw_4d,
+        'skel_points': skel_points,
+        'face_colors': face_colors_all,
+        'node_points': node_points,
+        'node_colors': node_colors_all,
+        'edge_lines_4d': edge_lines_4d,
+        'per_frame': per_frame,
+        'skel_per_frame': skel_per_frame,
+        'frame_csv_paths': frame_csv_paths,
+        'single_output_path': nellie_output_path,
+        'pixel_class_basename': pixel_class_basename,
+        'num_t': num_t,
+    }
 
 
 def load_timeseries_4d(loaded_folder):

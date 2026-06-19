@@ -5,7 +5,9 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from natsort import natsorted
 
 from app_state import app_state
-from processing.run_nellie_skeleton import run_nellie_processing, process_single_file
+from processing.run_nellie_skeleton import (
+    run_nellie_processing, process_single_file, process_4d_file,
+)
 
 # Try to keep the GUI from being completely frozen during parallel processing
 try:
@@ -62,6 +64,40 @@ def process_clicked(widget):
             if im_info:
                 widget.log_status("Processing complete!")
                 widget.view_btn.setEnabled(True)
+
+        elif app_state.folder_type == '4D Stack':
+            # A single 4D OME-TIFF: one native Nellie run over the whole stack.
+            im_path = app_state.loaded_file
+            if not im_path or not os.path.isfile(im_path):
+                widget.log_status("No 4D .ome.tif selected. Please browse to a file first.")
+                return
+
+            app_state.nellie_output_path = os.path.join(
+                os.path.dirname(im_path), 'nellie_output/nellie_necessities'
+            )
+            app_state.single_output_path = app_state.nellie_output_path
+
+            widget.log_status(
+                f"Processing 4D stack {os.path.basename(im_path)} in a single "
+                f"Nellie run. The GUI may be unresponsive while this runs."
+            )
+            _flush_gui()
+
+            path, ok, num_t, err = process_4d_file(
+                im_path,
+                z_res=app_state.z_resolution,
+                y_res=app_state.y_resolution,
+                x_res=app_state.x_resolution,
+                remove_edges=widget.remove_edges_check.isChecked(),
+                ch=widget.channel_spin.value(),
+            )
+            if ok:
+                widget.log_status(
+                    f"4D processing complete: {num_t} timepoint(s) in one run."
+                )
+                widget.view_btn.setEnabled(True)
+            else:
+                widget.log_status(f"Error in 4D Nellie processing: {err}")
 
         elif app_state.folder_type == 'Time Series':
             # Build the task list (one nellie pipeline per timepoint folder)

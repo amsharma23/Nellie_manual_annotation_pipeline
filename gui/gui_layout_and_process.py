@@ -50,7 +50,7 @@ class FileLoaderWidget(QWidget):
         type_layout.addWidget(self.type_label)
         
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["Single TIFF", "Time Series"])
+        self.type_combo.addItems(["Single TIFF", "Time Series", "4D Stack"])
         type_layout.addWidget(self.type_combo)
         file_layout.addLayout(type_layout)
         
@@ -239,7 +239,13 @@ class FileLoaderWidget(QWidget):
 
     def on_browse_clicked(self):
         """Handle browse button click to select input file or folder."""
-        file_path = QFileDialog.getExistingDirectory(self, "Select Folder")
+        if self.type_combo.currentText() == '4D Stack':
+            file_path, _ = QFileDialog.getOpenFileName(
+                self, "Select 4D OME-TIFF", "",
+                "OME-TIFF (*.ome.tif *.ome.tiff);;TIFF (*.tif *.tiff);;All files (*)",
+            )
+        else:
+            file_path = QFileDialog.getExistingDirectory(self, "Select Folder")
         browse_folder(self, self.path_label, self.process_btn, self.view_btn, self.network_btn, self.type_combo, self.analyze_dynamics_btn, file_path)
             
     def on_process_clicked(self):
@@ -305,6 +311,14 @@ class FileLoaderWidget(QWidget):
             app_state.skeleton_coords = app_state.skeleton_coords_per_frame[t_idx]
         if app_state.ts_per_frame and t_idx < len(app_state.ts_per_frame):
             app_state.node_dataframe = app_state.ts_per_frame[t_idx].get('node_df')
+
+        # Point the editing tools at this frame's extracted CSV so manual edits
+        # (insert/join/remove/delete-node) save to the correct frame.
+        if app_state.is_4d_stack:
+            if app_state.frame_csv_paths and t_idx < len(app_state.frame_csv_paths):
+                app_state.node_path = app_state.frame_csv_paths[t_idx]
+        elif app_state.ts_per_frame and t_idx < len(app_state.ts_per_frame):
+            app_state.node_path = app_state.ts_per_frame[t_idx].get('extracted_csv')
 
         # Mirror the side-panel slider (silent if it came from there)
         if source != 'slider':

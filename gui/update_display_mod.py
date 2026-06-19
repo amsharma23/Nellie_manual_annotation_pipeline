@@ -4,6 +4,7 @@ from utils.layer_loader import (
     load_dynamics_events_layer,
     load_dynamics_events_layer_4d,
     _load_frame_data,
+    reload_frame_csv_4dstack,
 )
 from natsort import natsorted
 import os
@@ -107,8 +108,13 @@ def refresh_4d_current_frame(widget):
     if t is None or t < 0 or t >= len(app_state.timepoint_paths):
         return
 
-    nop = app_state.timepoint_paths[t]
-    fresh = _load_frame_data(nop)
+    if app_state.is_4d_stack:
+        # Single 4D output folder: re-read just this frame's CSV (skeleton
+        # voxels are cached and unchanged by edits).
+        fresh = reload_frame_csv_4dstack(t)
+    else:
+        nop = app_state.timepoint_paths[t]
+        fresh = _load_frame_data(nop)
     if fresh is None:
         return
 

@@ -54,13 +54,36 @@ def browse_folder(widget, path_label, process_btn, view_btn, network_btn, type_c
 
     if file_path:
 
-        app_state.loaded_folder = file_path
+        if app_state.folder_type == '4D Stack':
+            # file_path is a single 4D .ome.tif; output lives beside it.
+            app_state.loaded_file = file_path
+            app_state.loaded_folder = os.path.dirname(file_path)
+        else:
+            app_state.loaded_folder = file_path
         path_label.setText(os.path.basename(file_path))
         process_btn.setEnabled(True)
-        widget.log_status(f"Selected folder: {file_path}")
-        
+        widget.log_status(f"Selected: {file_path}")
+
         #check if there's an output folder already
-        if app_state.folder_type == 'Single TIFF':
+        if app_state.folder_type == '4D Stack':
+            analyze_dynamics_btn.setEnabled(False)
+            single_output = os.path.join(
+                os.path.dirname(file_path), 'nellie_output', 'nellie_necessities'
+            )
+            if os.path.exists(single_output):
+                app_state.single_output_path = single_output
+                app_state.nellie_output_path = single_output
+                view_btn.setEnabled(True)
+                widget.log_status(f"{file_path} already has 4D Nellie output to view!")
+                op_files = os.listdir(single_output)
+                if any(f.endswith('im_pixel_class.ome.tif') or f.endswith('im_pixel_class.ome.tiff')
+                       for f in op_files):
+                    network_btn.setEnabled(True)
+                if any(('_t' in f and f.endswith('_adjacency_list.csv')) for f in op_files):
+                    analyze_dynamics_btn.setEnabled(True)
+                    widget.log_status("Per-frame networks found. Dynamics analysis available!")
+
+        elif app_state.folder_type == 'Single TIFF':
             # Disable dynamics analysis for single TIFF
             analyze_dynamics_btn.setEnabled(False)
 

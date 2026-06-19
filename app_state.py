@@ -47,6 +47,12 @@ class AppState:
         self.ts_per_frame = []           # list[dict]: cached _load_frame_data output per frame
         self.is_timeseries_4d = False    # True while the 4D stacked view is active
         self.skeleton_coords_per_frame = []  # list[np.ndarray (N_t, 3)]: per-frame skeleton voxels
+        # 4D Stack state (single 4D OME-TIFF processed natively in one Nellie run)
+        self.loaded_file = None          # str: path to the selected 4D .ome.tif
+        self.is_4d_stack = False         # True when the active 4D view came from a single 4D stack
+        self.single_output_path = None   # str: the one nellie_necessities folder holding 4D outputs
+        self.frame_csv_paths = []        # list[str]: per-frame extracted CSV path inside single_output_path
+        self.pixel_class_basename = None # str: basename (no ext) of the 4D pixel-class file; drives per-frame CSV names
 
     @property
     def visualization_scale(self):
@@ -88,5 +94,10 @@ class AppState:
         self.ts_per_frame = []
         self.is_timeseries_4d = False
         self.skeleton_coords_per_frame = []
+        self.loaded_file = None
+        self.is_4d_stack = False
+        self.single_output_path = None
+        self.frame_csv_paths = []
+        self.pixel_class_basename = None
 
 app_state = AppState()

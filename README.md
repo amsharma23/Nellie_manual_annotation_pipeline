@@ -6,7 +6,7 @@ A graphical user interface application for manual network analysis and topology 
 
 ### Core Functionality
 - **Network Analysis**: Process mitochondrial 3D images using the Nellie pipeline for skeleton extraction and network generation
-- **Interactive Visualization**: Built on Napari for intuitive image viewing and manipulation. Time series datasets are loaded as a single 4D (T, Z, Y, X) stack so the native napari time slider, arrow keys, and animation controls all work out of the box.
+- **Interactive Visualization**: Built on Napari for intuitive image viewing and manipulation. Time series datasets — whether from numbered timepoint folders or a single 4D OME-TIFF (**4D Stack** mode) — are loaded as a single 4D (T, Z, Y, X) stack so the native napari time slider, arrow keys, and animation controls all work out of the box.
 - **Manual Network Editing**: Tools to manually modify network topology including:
   - Add/remove nodes and edges
   - Add junction points and tips
@@ -105,6 +105,20 @@ your_timeseries_folder/
 - Folder numbers should be sequential starting from 1
 - All `.ome.tif` files are required for Nellie processing and dynamics analysis
 
+### 4D Stack (Single 4D OME-TIFF)
+For 4D analysis, point the app at a **single** OME-TIFF that contains a time
+(`T`) axis — no numbered subfolders needed:
+```
+your_data_folder/
+└── movie.ome.tif        # Required: one (T, Z, Y, X) OME-TIFF with a T dimension
+```
+
+**Requirements:**
+- Set the **File Type** dropdown to **`4D Stack`**, then **Browse** to the `.ome.tif` *file* (a file picker opens instead of a folder picker).
+- The file must have a `T` axis in its OME metadata (shape `(T, Z, Y, X)`).
+- Nellie runs **once** over the whole stack (native 4D), writing 4D outputs to `movie/`'s sibling `nellie_output/nellie_necessities/` folder.
+- All timepoints must share the same `(Z, Y, X)` shape (guaranteed for a single stack).
+
 ## Usage
 
 1. **Launch the Application**: Run `python main.py` to start the Napari viewer with Nellie controls
@@ -128,6 +142,28 @@ Progress is reported per-frame in the status log (`[k/N] Done: time point M` or 
 **Single TIFF** mode is unchanged — it runs serially in the GUI process.
 
 To change the worker count, edit `_choose_worker_count()` in `gui/process_image.py`.
+
+## 4D Stack Processing (Native)
+
+**4D Stack** mode is the recommended way to analyze a movie. Instead of pre-splitting
+your data into numbered timepoint folders, you select a single `(T, Z, Y, X)`
+OME-TIFF and Nellie processes the entire stack in **one native run**
+(`process_4d_file()` keeps the full temporal range rather than collapsing to a
+single frame). All outputs land in one `nellie_output/nellie_necessities/`
+folder beside the file:
+
+- The raw and skeleton (`im_pixel_class`) TIFFs are 4D `(T, Z, Y, X)`.
+- **Generate Network** slices the 4D skeleton per timepoint and writes per-frame
+  CSVs named `…_im_pixel_class_t{idx:04d}_adjacency_list.csv` /
+  `…_extracted.csv` into that same folder.
+- **View Results** loads the single 4D folder as one napari stack — identical
+  navigation/editing to numbered-folder Time Series (T-slider, arrow keys,
+  Prev/Next, and all editing/event keybindings operate on the current frame).
+- **Analyze Dynamics** reads the per-frame CSVs (`read_4d_stack_csvs()`),
+  tagging each with `time_point = idx + 1`, then runs the unchanged event
+  analysis. The combined CSV and event CSVs are written next to the input file.
+
+The numbered-folder **Time Series** mode is still fully supported.
 
 ## Time Series Navigation
 

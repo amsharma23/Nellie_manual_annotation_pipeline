@@ -79,6 +79,58 @@ def process_single_file(im_path, z_res, y_res, x_res,
         return im_path, False, repr(exc)
 
 
+def process_4d_file(im_path, z_res, y_res, x_res,
+                    remove_edges=False, ch=0, t_res=1.0,
+                    device=DEFAULT_DEVICE):
+    """Run Filter -> Label -> Network once on a single 4D OME-TIFF (T, Z, Y, X).
+
+    Unlike ``process_single_file`` (which collapses to a single timepoint), this
+    keeps the full temporal range so Nellie produces 4D outputs in one pass.
+    Pure function: no GUI globals, no napari calls. Returns
+    (im_path, success, num_t, error_msg).
+    """
+    if not NELLIE_AVAILABLE:
+        return im_path, False, 0, "Nellie library not installed"
+
+    try:
+        file_info = FileInfo(im_path)
+        file_info.find_metadata()
+        file_info.load_metadata()
+
+        file_info.change_dim_res('Z', z_res)
+        file_info.change_dim_res('Y', y_res)
+        file_info.change_dim_res('X', x_res)
+        file_info.change_dim_res('T', t_res)
+
+        # Keep every timepoint. If the file has no T axis, fall back to a
+        # single timepoint so we degrade gracefully.
+        num_t = 1
+        try:
+            if file_info.axes and 'T' in file_info.axes:
+                t_len = file_info.shape[file_info.axes.index('T')]
+                num_t = max(1, int(t_len))
+                file_info.select_temporal_range(0, num_t - 1)
+            else:
+                file_info.select_temporal_range(0, 0)
+        except Exception:
+            pass
+
+        im_info = ImInfo(file_info)
+
+        # num_t=None lets Nellie process the full selected temporal range.
+        Filter(im_info, None, remove_edges=remove_edges, device=device).run()
+        logging.info("Filter complete (4D): %s", im_path)
+        Label(im_info, None, device=device).run()
+        logging.info("Label complete (4D): %s", im_path)
+        Network(im_info, None, device=device).run()
+        logging.info("Network complete (4D): %s", im_path)
+
+        return im_path, True, num_t, None
+    except Exception as exc:
+        logging.exception("4D pipeline failed for %s", im_path)
+        return im_path, False, 0, repr(exc)
+
+
 def run_nellie_processing(im_path, num_t=None, remove_edges=False, ch=0):
     """GUI-facing wrapper for Single TIFF mode.
 

@@ -30,6 +30,26 @@ def network_click(widget):
             if adjacency_path and edge_path:
                 widget.log_status(f"Network analysis complete. Files saved to:\n- {adjacency_path}\n- {edge_path}")
                 widget.analyze_dynamics_btn.setEnabled(True)
+        elif app_state.folder_type == '4D Stack':
+            out_path = app_state.single_output_path or app_state.nellie_output_path
+            widget.log_status(f"Starting network generation for 4D stack {out_path}")
+            if not out_path or not os.path.exists(out_path):
+                widget.log_status("No 4D output found. Please run processing first.")
+                return
+            tif_files = os.listdir(out_path)
+            pixel_class_files = [f for f in tif_files if (f.endswith('im_pixel_class.ome.tif') or f.endswith('im_pixel_class.ome.tiff'))]
+            if not pixel_class_files:
+                widget.log_status("No pixel classification file found.")
+                return
+
+            pixel_class_path = os.path.join(out_path, pixel_class_files[0])
+            widget.log_status(f"Generating per-timepoint networks from {pixel_class_path}...")
+            adjacency_path, edge_path = get_network(pixel_class_path)
+
+            if adjacency_path and edge_path:
+                widget.log_status("4D network generation complete (per-frame CSVs written).")
+                widget.analyze_dynamics_btn.setEnabled(True)
+
         elif app_state.folder_type == 'Time Series':
                 widget.log_status(f"Starting network generation for time series in folder {app_state.loaded_folder}")
                 # Check if we have subfolders for each time point

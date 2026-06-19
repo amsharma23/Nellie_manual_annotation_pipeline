@@ -228,38 +228,43 @@ def insert_node_at_cursor(viewer, widget):
     # Save to CSV
     nd_pdf.to_csv(node_path, index=False)
 
-    # Reload visualization to show updated network properly
-    viewer.layers.clear()
+    # Reload visualization to show updated network properly. In 4D modes,
+    # refresh only the current frame so the T-stack and slider stay intact.
+    if app_state.is_timeseries_4d:
+        from gui.update_display_mod import refresh_4d_current_frame
+        refresh_4d_current_frame(widget)
+    else:
+        viewer.layers.clear()
 
-    raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(
-        app_state.nellie_output_path
-    )
-
-    if raw_im is not None and skel_im is not None:
-        # Add raw image layer
-        app_state.raw_layer = viewer.add_image(
-            raw_im,
-            scale=app_state.visualization_scale,
-            name='Raw Image'
+        raw_im, skel_im, face_colors, positions, colors, edge_lines = load_image_and_skeleton(
+            app_state.nellie_output_path
         )
 
-        # Add skeleton as points layer
-        app_state.skeleton_layer = viewer.add_points(
-            skel_im,
-            size=3,
-            face_color=face_colors,
-            scale=app_state.visualization_scale,
-            name='Skeleton'
-        )
-
-        # Add extracted nodes if available
-        if positions and colors:
-            app_state.points_layer = viewer.add_points(
-                positions,
-                size=5,
-                face_color=colors,
+        if raw_im is not None and skel_im is not None:
+            # Add raw image layer
+            app_state.raw_layer = viewer.add_image(
+                raw_im,
                 scale=app_state.visualization_scale,
-                name='Extracted Nodes'
+                name='Raw Image'
             )
+
+            # Add skeleton as points layer
+            app_state.skeleton_layer = viewer.add_points(
+                skel_im,
+                size=3,
+                face_color=face_colors,
+                scale=app_state.visualization_scale,
+                name='Skeleton'
+            )
+
+            # Add extracted nodes if available
+            if positions and colors:
+                app_state.points_layer = viewer.add_points(
+                    positions,
+                    size=5,
+                    face_color=colors,
+                    scale=app_state.visualization_scale,
+                    name='Extracted Nodes'
+                )
 
     widget.log_status(f"Inserted new node (ID: {new_node_id}) at position {snapped_pos}")

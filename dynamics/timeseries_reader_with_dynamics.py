@@ -9,10 +9,68 @@ Time series adjacency list with dynamics CSV reader for analyzing network dynami
 """
 
 import os
+import re
 import pandas as pd
 from natsort import natsorted
 import glob
 from typing import Optional
+
+
+def read_4d_stack_csvs(nellie_output_path: str) -> pd.DataFrame:
+    """Read per-frame adjacency CSVs from a single 4D-stack output folder.
+
+    4D Stack mode writes one network per timepoint into the single
+    ``nellie_necessities`` folder as ``{base}_t{idx:04d}_adjacency_list.csv``
+    (and, if present, ``..._adjacency_list_with_dynamics.csv``). This collects
+    them, tags each with ``time_point = idx + 1`` (1-indexed, matching the
+    numbered-folder Time Series convention and the manual event keys), and
+    concatenates into one DataFrame.
+
+    Args:
+        nellie_output_path: the single nellie_necessities folder.
+
+    Returns:
+        Combined DataFrame (same shape as `read_timeseries_csvs`).
+    """
+    if not nellie_output_path or not os.path.exists(nellie_output_path):
+        raise FileNotFoundError(f"4D output folder not found: {nellie_output_path}")
+
+    def _t_of(path):
+        m = re.search(r'_t(\d+)_adjacency_list', os.path.basename(path))
+        return int(m.group(1)) if m else None
+
+    # Prefer the dynamics variant per frame; fall back to plain adjacency.
+    chosen = {}
+    for p in glob.glob(os.path.join(nellie_output_path, '*_t*_adjacency_list.csv')):
+        t = _t_of(p)
+        if t is not None:
+            chosen[t] = p
+    for p in glob.glob(os.path.join(nellie_output_path, '*_t*_adjacency_list_with_dynamics.csv')):
+        t = _t_of(p)
+        if t is not None:
+            chosen[t] = p  # override with the dynamics-augmented CSV
+
+    if not chosen:
+        print("No per-frame adjacency CSVs found in", nellie_output_path)
+        return pd.DataFrame()
+
+    all_data = []
+    for t in sorted(chosen):
+        try:
+            df = pd.read_csv(chosen[t])
+            df['time_point'] = t + 1  # 1-indexed
+            all_data.append(df)
+            print(f"  Loaded {len(df)} nodes for frame t={t} (time_point {t + 1})")
+        except Exception as e:
+            print(f"  Error reading {chosen[t]}: {e}")
+
+    if not all_data:
+        return pd.DataFrame()
+
+    combined_df = pd.concat(all_data, ignore_index=True)
+    print(f"\nCombined 4D-stack database: {len(combined_df)} rows across "
+          f"{len(all_data)} timepoints")
+    return combined_df
 
 
 def read_timeseries_csvs(base_folder: str) -> pd.DataFrame:

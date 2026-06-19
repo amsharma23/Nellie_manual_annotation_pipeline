@@ -11,7 +11,7 @@ Dynamics analysis integration for the GUI.
 import os
 import pandas as pd
 from app_state import app_state
-from dynamics.timeseries_reader_with_dynamics import read_timeseries_csvs
+from dynamics.timeseries_reader_with_dynamics import read_timeseries_csvs, read_4d_stack_csvs
 from dynamics.analyze_events import analyze_events_from_csv
 
 
@@ -29,8 +29,8 @@ def analyze_dynamics_clicked(widget):
         widget.log_status("No folder selected. Please browse to a time series folder first.")
         return
 
-    if app_state.folder_type != "Time Series":
-        widget.log_status("Dynamics analysis only available for Time Series data.")
+    if app_state.folder_type not in ("Time Series", "4D Stack"):
+        widget.log_status("Dynamics analysis only available for Time Series / 4D Stack data.")
         return
 
     widget.log_status("Starting dynamics analysis...")
@@ -46,8 +46,11 @@ def analyze_dynamics_clicked(widget):
             widget.log_status(f"Loaded {len(app_state.combined_timeseries_df)} rows from existing CSV")
         else:
             widget.log_status("Combined CSV not found. Reading individual time series files...")
-            # Call timeseries_reader to create combined CSV
-            app_state.combined_timeseries_df = read_timeseries_csvs(app_state.loaded_folder)
+            # Call the appropriate reader to build the combined CSV.
+            if app_state.folder_type == "4D Stack":
+                app_state.combined_timeseries_df = read_4d_stack_csvs(app_state.single_output_path)
+            else:
+                app_state.combined_timeseries_df = read_timeseries_csvs(app_state.loaded_folder)
 
             if app_state.combined_timeseries_df.empty:
                 widget.log_status("No time series data found in " + app_state.loaded_folder)
