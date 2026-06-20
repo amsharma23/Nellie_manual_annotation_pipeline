@@ -308,7 +308,7 @@ def setup_key_bindings(widget, viewer):
     # ========== Dynamic Event Correction Keybindings ==========
     from dynamics.manual_event_correction import (
         delete_selected_event, show_event_info,
-        add_event_at_cursor, EVENT_TYPES
+        add_event_at_skeleton_point, EVENT_TYPES
     )
 
     @viewer.bind_key('d')
@@ -325,48 +325,50 @@ def setup_key_bindings(widget, viewer):
             current_tp = widget.image_slider.value()
             show_event_info(viewer, widget, current_tp)
 
-    # Keybindings for adding specific event types (1-6)
-    @viewer.bind_key('1')
+    # Keybindings for adding specific event types at the selected Skeleton
+    # point. Shift+digit avoids napari's bare-digit Points-layer modes
+    # (delete/add/select/pan/transform on 1-5).
+    @viewer.bind_key('Shift-1')
     def add_tip_edge_fusion(viewer):
-        """Add tip-edge fusion event at cursor (key: '1')"""
+        """Add tip-edge fusion at selected skeleton point (key: 'Shift+1')"""
         if hasattr(widget, 'image_slider'):
             current_tp = widget.image_slider.value()
-            add_event_at_cursor(viewer, widget, 'tip_edge_fusion', current_tp)
+            add_event_at_skeleton_point(viewer, widget, 'tip_edge_fusion', current_tp)
 
-    @viewer.bind_key('2')
+    @viewer.bind_key('Shift-2')
     def add_junction_breakage(viewer):
-        """Add junction breakage event at cursor (key: '2')"""
+        """Add junction breakage at selected skeleton point (key: 'Shift+2')"""
         if hasattr(widget, 'image_slider'):
             current_tp = widget.image_slider.value()
-            add_event_at_cursor(viewer, widget, 'junction_breakage', current_tp)
+            add_event_at_skeleton_point(viewer, widget, 'junction_breakage', current_tp)
 
-    @viewer.bind_key('3')
+    @viewer.bind_key('Shift-3')
     def add_tip_tip_fusion(viewer):
-        """Add tip-tip fusion event at cursor (key: '3')"""
+        """Add tip-tip fusion at selected skeleton point (key: 'Shift+3')"""
         if hasattr(widget, 'image_slider'):
             current_tp = widget.image_slider.value()
-            add_event_at_cursor(viewer, widget, 'tip_tip_fusion', current_tp)
+            add_event_at_skeleton_point(viewer, widget, 'tip_tip_fusion', current_tp)
 
-    @viewer.bind_key('4')
+    @viewer.bind_key('Shift-4')
     def add_tip_tip_fission(viewer):
-        """Add tip-tip fission event at cursor (key: '4')"""
+        """Add tip-tip fission at selected skeleton point (key: 'Shift+4')"""
         if hasattr(widget, 'image_slider'):
             current_tp = widget.image_slider.value()
-            add_event_at_cursor(viewer, widget, 'tip_tip_fission', current_tp)
+            add_event_at_skeleton_point(viewer, widget, 'tip_tip_fission', current_tp)
 
-    @viewer.bind_key('5')
+    @viewer.bind_key('Shift-5')
     def add_extrusion(viewer):
-        """Add extrusion event at cursor (key: '5')"""
+        """Add extrusion at selected skeleton point (key: 'Shift+5')"""
         if hasattr(widget, 'image_slider'):
             current_tp = widget.image_slider.value()
-            add_event_at_cursor(viewer, widget, 'extrusion', current_tp)
+            add_event_at_skeleton_point(viewer, widget, 'extrusion', current_tp)
 
-    @viewer.bind_key('6')
+    @viewer.bind_key('Shift-6')
     def add_retraction(viewer):
-        """Add retraction event at cursor (key: '6')"""
+        """Add retraction at selected skeleton point (key: 'Shift+6')"""
         if hasattr(widget, 'image_slider'):
             current_tp = widget.image_slider.value()
-            add_event_at_cursor(viewer, widget, 'retraction', current_tp)
+            add_event_at_skeleton_point(viewer, widget, 'retraction', current_tp)
 
 
 def update_image(widget, viewer, current, index):

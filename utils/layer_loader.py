@@ -475,11 +475,17 @@ def _build_frame_dict(skel_coords, extracted_csv, adjacency_csv, out_dir, basena
 
 
 def _frame_csv_names(out_dir, pixel_class_basename, t_idx):
-    """Return (extracted_csv, adjacency_csv) paths for a 4D-stack frame."""
+    """Return (extracted_csv, adjacency_csv) paths for a 4D-stack frame.
+
+    Per-frame network CSVs live in a ``network_csvs/`` subfolder of the single
+    nellie_necessities output folder (created on demand).
+    """
+    csv_dir = os.path.join(out_dir, 'network_csvs')
+    os.makedirs(csv_dir, exist_ok=True)
     stem = f"{pixel_class_basename}_t{t_idx:04d}"
     return (
-        os.path.join(out_dir, f"{stem}_extracted.csv"),
-        os.path.join(out_dir, f"{stem}_adjacency_list.csv"),
+        os.path.join(csv_dir, f"{stem}_extracted.csv"),
+        os.path.join(csv_dir, f"{stem}_adjacency_list.csv"),
     )
 
 
@@ -532,8 +538,17 @@ def load_4d_stack(nellie_output_path):
         return None
 
     files = os.listdir(nellie_output_path)
-    raw_files = [f for f in files if f.endswith('-ch0.ome.tif')]
-    skel_files = [f for f in files if f.endswith('-ch0-im_pixel_class.ome.tif')]
+
+    def _is_tif(f):
+        return f.endswith('.ome.tif') or f.endswith('.ome.tiff')
+
+    # Nellie names 4D outputs with a temporal-range token, e.g.
+    #   <name>-ch0-t0_to_79.ome.tif                 (raw passthrough)
+    #   <name>-ch0-t0_to_79-im_pixel_class.ome.tif  (skeleton)
+    # The raw passthrough is the channel image with no derived '-im_...' token.
+    raw_files = [f for f in files if _is_tif(f) and '-ch0' in f and '-im_' not in f]
+    skel_files = [f for f in files if f.endswith('im_pixel_class.ome.tif')
+                  or f.endswith('im_pixel_class.ome.tiff')]
     if not raw_files or not skel_files:
         show_error("4D stack: raw or pixel-class file missing in output folder.")
         return None
@@ -850,38 +865,24 @@ def extract_event_points(df, config, current_timepoint=None, csv_file=None):
         event_points = []
         event_timepoint = None
 
-        # Handle different event structures - always use timepoint_2
-        if 'position_t1' in row and 'position_t2' in row:
-            # Events with two timepoints (tip-edge fusion, junction breakage)
-            if 'timepoint_2' in row:
-                timepoint_2 = row['timepoint_2']
-                if current_timepoint is None or current_timepoint == timepoint_2:
-                    pos_2 = parse_position(row['position_t2'])
-                    if pos_2:
-                        event_points.append(pos_2)
-                        event_timepoint = timepoint_2
-
-        elif 'tip1_position' in row and 'tip2_position' in row:
-            # Tip-tip events
-            if 'timepoint_2' in row:
-                timepoint_2 = row['timepoint_2']
-                if current_timepoint is None or current_timepoint == timepoint_2:
-                    pos_1 = parse_position(row['tip1_position'])
-                    pos_2 = parse_position(row['tip2_position'])
-                    if pos_1 and pos_2:
-                        event_points.extend([pos_1, pos_2])
-                        event_timepoint = timepoint_2
-
-        elif 'tip_position' in row and 'junction_position' in row:
-            # Extrusion/retraction events
-            if 'timepoint_2' in row:
-                timepoint_2 = row['timepoint_2']
-                if current_timepoint is None or current_timepoint == timepoint_2:
-                    tip_pos = parse_position(row['tip_position'])
-                    junction_pos = parse_position(row['junction_position'])
-                    if tip_pos and junction_pos:
-                        event_points.extend([tip_pos, junction_pos])
-                        event_timepoint = timepoint_2
+        # All event types now store a single representative 'position' (one of
+        # the nodes involved). Older CSVs used per-type two-position columns —
+        # fall back to the t2 / first position of those for backward compat.
+        if 'timepoint_2' in row:
+            timepoint_2 = row['timepoint_2']
+            if current_timepoint is None or current_timepoint == timepoint_2:
+                pos = None
+                if 'position' in row and pd.notna(row.get('position')):
+                    pos = parse_position(row['position'])
+                elif 'position_t2' in row:            # legacy tip-edge/junction
+                    pos = parse_position(row['position_t2'])
+                elif 'tip1_position' in row:          # legacy tip-tip
+                    pos = parse_position(row['tip1_position'])
+                elif 'tip_position' in row:           # legacy extrusion/retraction
+                    pos = parse_position(row['tip_position'])
+                if pos:
+                    event_points.append(pos)
+                    event_timepoint = timepoint_2
 
         # Add points to lists
         for point in event_points:

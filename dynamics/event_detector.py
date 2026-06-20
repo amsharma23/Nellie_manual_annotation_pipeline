@@ -290,8 +290,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
             pos_t2 = [df_t2.iloc[t2_idx]['pos_x'], df_t2.iloc[t2_idx]['pos_y'], df_t2.iloc[t2_idx]['pos_z']]
 
             event_data = {
-                'position_t1': pos_t1,
-                'position_t2': pos_t2,
+                # Single representative point for the event (the t2 node).
+                'position': pos_t2,
                 'degree_t1': degree_t1,
                 'degree_t2': degree_t2,
                 'timepoint_1': df_t1.iloc[t1_idx].get('time_point', 'unknown'),
@@ -385,8 +385,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                         continue  # Tip 2 reappears after fusion (not a real fusion)
 
             event_data = {
-                'tip1_position': pos1,
-                'tip2_position': pos2,
+                # Single representative point for the event (one of the two tips).
+                'position': pos1,
                 'distance': distance,
                 'timepoint_1': df_t1.iloc[idx1].get('time_point', 'unknown'),
                 'timepoint_2': df_t1.iloc[idx1].get('time_point', 'unknown') + 1
@@ -437,8 +437,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                         continue  # Tip 2 doesn't persist after fission
 
             event_data = {
-                'tip1_position': pos1,
-                'tip2_position': pos2,
+                # Single representative point for the event (one of the two tips).
+                'position': pos1,
                 'distance': distance,
                 'timepoint_1': df_t2.iloc[idx1].get('time_point', 'unknown') - 1,
                 'timepoint_2': df_t2.iloc[idx1].get('time_point', 'unknown')
@@ -489,8 +489,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                         continue  # Junction doesn't persist after extrusion
 
             event_data = {
-                'tip_position': tip_pos,
-                'junction_position': junction_pos,
+                # Single representative point for the event (the tip node).
+                'position': tip_pos,
                 'distance': distance,
                 'timepoint_1': df_t2.iloc[tip_idx].get('time_point', 'unknown') - 1,
                 'timepoint_2': df_t2.iloc[tip_idx].get('time_point', 'unknown')
@@ -541,8 +541,8 @@ def classify_network_events(df_t1, df_t2, distance_threshold=2.0, z_scale: float
                         continue  # Junction reappears after retraction (not a real retraction)
 
             event_data = {
-                'tip_position': tip_pos,
-                'junction_position': junction_pos,
+                # Single representative point for the event (the tip node).
+                'position': tip_pos,
                 'distance': distance,
                 'timepoint_1': df_t1.iloc[tip_idx].get('time_point', 'unknown'),
                 'timepoint_2': df_t1.iloc[tip_idx].get('time_point', 'unknown') + 1

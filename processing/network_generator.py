@@ -194,17 +194,20 @@ def get_network(pixel_class_path):
         skeleton = imread(pixel_class_path)
 
         if skeleton.ndim == 4:
-            # (T, Z, Y, X): one network per timepoint with per-frame CSV names.
+            # (T, Z, Y, X): one network per timepoint. Per-frame CSVs/edge-lists
+            # go into a 'network_csvs/' subfolder to keep nellie_necessities tidy.
             num_t = skeleton.shape[0]
+            csv_dir = os.path.join(out_dir, 'network_csvs')
+            os.makedirs(csv_dir, exist_ok=True)
             show_info(
                 f"4D pixel-class {np.shape(skeleton)}: generating networks for "
-                f"{num_t} timepoints"
+                f"{num_t} timepoints into {csv_dir}"
             )
             result = (None, None)
             for t in range(num_t):
                 show_info(f"Generating network for timepoint {t + 1}/{num_t}...")
                 result = _build_network_for_volume(
-                    skeleton[t], f"{base_name}_t{t:04d}", out_dir
+                    skeleton[t], f"{base_name}_t{t:04d}", csv_dir
                 )
             return result
 

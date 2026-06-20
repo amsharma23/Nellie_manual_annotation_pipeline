@@ -83,7 +83,7 @@ def process_clicked(widget):
             )
             _flush_gui()
 
-            path, ok, num_t, err = process_4d_file(
+            path, ok, num_t, err, removed = process_4d_file(
                 im_path,
                 z_res=app_state.z_resolution,
                 y_res=app_state.y_resolution,
@@ -95,6 +95,11 @@ def process_clicked(widget):
                 widget.log_status(
                     f"4D processing complete: {num_t} timepoint(s) in one run."
                 )
+                if removed:
+                    widget.log_status(
+                        f"Cleanup: removed {removed} intermediate file(s) from "
+                        f"nellie_necessities/."
+                    )
                 widget.view_btn.setEnabled(True)
             else:
                 widget.log_status(f"Error in 4D Nellie processing: {err}")
@@ -156,13 +161,18 @@ def process_clicked(widget):
                 for fut in as_completed(future_to_tp):
                     tp_label = future_to_tp[fut]
                     completed += 1
+                    removed = 0
                     try:
-                        path, ok, err = fut.result()
+                        path, ok, err, removed = fut.result()
                     except Exception as exc:
                         ok, err, path = False, repr(exc), '?'
                     if ok:
+                        cleanup_note = (
+                            f" (cleaned {removed} file(s))" if removed else ""
+                        )
                         widget.log_status(
                             f"[{completed}/{total}] Done: time point {tp_label}"
+                            f"{cleanup_note}"
                         )
                     else:
                         failures.append((tp_label, err))

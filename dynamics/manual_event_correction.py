@@ -15,46 +15,54 @@ import numpy as np
 import os
 from typing import Optional, Dict, List, Tuple
 from app_state import app_state
-from utils.layer_loader import load_dynamics_events_layer
+from utils.layer_loader import load_dynamics_events_layer, load_dynamics_events_layer_4d
+
+
+def _refresh_events_layer(viewer, current_timepoint):
+    """Rebuild the Dynamic Events layer using the right builder for the mode.
+
+    In Time Series / 4D Stack views the layer is 4D (T, Z, Y, X) and napari's
+    T-slider does the per-frame filtering, so we must rebuild it 4D — using the
+    3D builder here would collapse it to a single frame.
+    """
+    if getattr(app_state, 'is_timeseries_4d', False):
+        load_dynamics_events_layer_4d(viewer)
+    else:
+        load_dynamics_events_layer(viewer, current_timepoint)
     
 
-# Event type definitions with colors
+# Event type definitions with colors. Each event stores a single representative
+# 'position' (one of the nodes involved), matching the automated detector.
 EVENT_TYPES = {
     'tip_edge_fusion': {
         'name': 'Tip-Edge Fusion',
         'color': 'gold',
         'csv_file': 'tip_edge_fusion_events.csv',
-        'position_fields': ['position_t1', 'position_t2']
     },
     'junction_breakage': {
         'name': 'Junction Breakage',
         'color': 'darkorange',
         'csv_file': 'junction_breakage_events.csv',
-        'position_fields': ['position_t1', 'position_t2']
     },
     'tip_tip_fusion': {
         'name': 'Tip-Tip Fusion',
         'color': 'purple',
         'csv_file': 'tip_tip_fusion_events.csv',
-        'position_fields': ['tip1_position', 'tip2_position']
     },
     'tip_tip_fission': {
         'name': 'Tip-Tip Fission',
         'color': 'turquoise',
         'csv_file': 'tip_tip_fission_events.csv',
-        'position_fields': ['tip1_position', 'tip2_position']
     },
     'extrusion': {
         'name': 'Extrusion',
         'color': 'lime',
         'csv_file': 'extrusion_events.csv',
-        'position_fields': ['tip_position', 'junction_position']
     },
     'retraction': {
         'name': 'Retraction',
         'color': 'olive',
         'csv_file': 'retraction_events.csv',
-        'position_fields': ['tip_position', 'junction_position']
     }
 }
 
@@ -172,15 +180,36 @@ def delete_selected_event(viewer, widget, current_timepoint: int) -> bool:
 
     widget.log_status(f"Deleted {EVENT_TYPES[event_type_key]['name']} event at position {position}")
 
-    load_dynamics_events_layer(viewer, current_timepoint)
+    _refresh_events_layer(viewer, current_timepoint)
 
     return True
 
 
 
-def add_event_at_cursor(viewer, widget, event_type_key: str, current_timepoint: int) -> bool:
+def _selected_skeleton_position(viewer):
+    """Return the [z, y, x] coord of the single selected Skeleton-layer point.
+
+    Returns None if the Skeleton layer is missing or the selection is not
+    exactly one point. In 4D views the layer stores [t, z, y, x]; the leading
+    T is stripped so the stored position is always 3D [z, y, x].
     """
-    Add a new event at the current cursor position.
+    if 'Skeleton' not in viewer.layers:
+        return None
+    skel = viewer.layers['Skeleton']
+    selected = list(skel.selected_data)
+    if len(selected) != 1:
+        return None
+    coord = np.asarray(skel.data[selected[0]], dtype=float)
+    # Use the last 3 axes so both 3D [z,y,x] and 4D [t,z,y,x] work.
+    return coord[-3:]
+
+
+def add_event_at_skeleton_point(viewer, widget, event_type_key: str, current_timepoint: int) -> bool:
+    """
+    Add a new event at the currently selected Skeleton-layer point.
+
+    The user selects exactly one point on the Skeleton layer; the event is
+    placed at that skeleton voxel's coordinates (no cursor/free placement).
 
     Args:
         viewer: Napari viewer instance
@@ -195,15 +224,13 @@ def add_event_at_cursor(viewer, widget, event_type_key: str, current_timepoint: 
         widget.log_status(f"Invalid event type: {event_type_key}")
         return False
 
-    # Get cursor position
-    cursor_pos = viewer.cursor.position
-
-    if cursor_pos is None or len(cursor_pos) < 3:
-        widget.log_status("Could not get cursor position. Please move cursor over the image.")
+    # Require exactly one selected point on the Skeleton layer.
+    position = _selected_skeleton_position(viewer)
+    if position is None:
+        widget.log_status(
+            "Select exactly 1 point on the Skeleton layer, then press the event key."
+        )
         return False
-
-    # Take only the 3D coordinates (z, y, x)
-    position = np.array(cursor_pos[-3:])
 
     # Create event data
     event_data = create_event_data(event_type_key, position, current_timepoint)
@@ -229,7 +256,7 @@ def add_event_at_cursor(viewer, widget, event_type_key: str, current_timepoint: 
 
     widget.log_status(f"Added {EVENT_TYPES[event_type_key]['name']} event at position {position}")
 
-    load_dynamics_events_layer(viewer, current_timepoint)
+    _refresh_events_layer(viewer, current_timepoint)
 
     return True
 
@@ -249,30 +276,19 @@ def create_event_data(event_type_key: str, position: np.ndarray, current_timepoi
     # Convert napari position [z, y, x] to storage format [x, y, z]
     pos_storage = [float(position[2]), float(position[1]), float(position[0])]
 
+    # Single representative point, matching the automated detector schema.
     event_data = {
+        'position': pos_storage,
         'timepoint_1': current_timepoint - 1 if current_timepoint > 1 else current_timepoint,
-        'timepoint_2': current_timepoint
+        'timepoint_2': current_timepoint,
     }
 
-    # Add position fields based on event type
-    pos_fields = EVENT_TYPES[event_type_key]['position_fields']
-
+    # Keep the type-specific metadata columns so manual rows line up with the
+    # detector's output (degrees for fusion/breakage, distance for the rest).
     if event_type_key in ['tip_edge_fusion', 'junction_breakage']:
-        event_data['position_t1'] = pos_storage
-        event_data['position_t2'] = pos_storage
         event_data['degree_t1'] = 1 if event_type_key == 'tip_edge_fusion' else 3
         event_data['degree_t2'] = 3 if event_type_key == 'tip_edge_fusion' else 1
-
-    elif event_type_key in ['tip_tip_fusion', 'tip_tip_fission']:
-        # For tip-tip events, use same position for both tips (user should adjust manually)
-        event_data['tip1_position'] = pos_storage
-        event_data['tip2_position'] = pos_storage
-        event_data['distance'] = 0.0
-
-    elif event_type_key in ['extrusion', 'retraction']:
-        # For extrusion/retraction, use same position for tip and junction (user should adjust)
-        event_data['tip_position'] = pos_storage
-        event_data['junction_position'] = pos_storage
+    else:
         event_data['distance'] = 0.0
 
     return event_data

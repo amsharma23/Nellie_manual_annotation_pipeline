@@ -39,13 +39,18 @@ def read_4d_stack_csvs(nellie_output_path: str) -> pd.DataFrame:
         m = re.search(r'_t(\d+)_adjacency_list', os.path.basename(path))
         return int(m.group(1)) if m else None
 
+    # Per-frame CSVs live in network_csvs/; fall back to the folder root for
+    # outputs generated before that subfolder convention existed.
+    csv_dir = os.path.join(nellie_output_path, 'network_csvs')
+    base_dir = csv_dir if os.path.isdir(csv_dir) else nellie_output_path
+
     # Prefer the dynamics variant per frame; fall back to plain adjacency.
     chosen = {}
-    for p in glob.glob(os.path.join(nellie_output_path, '*_t*_adjacency_list.csv')):
+    for p in glob.glob(os.path.join(base_dir, '*_t*_adjacency_list.csv')):
         t = _t_of(p)
         if t is not None:
             chosen[t] = p
-    for p in glob.glob(os.path.join(nellie_output_path, '*_t*_adjacency_list_with_dynamics.csv')):
+    for p in glob.glob(os.path.join(base_dir, '*_t*_adjacency_list_with_dynamics.csv')):
         t = _t_of(p)
         if t is not None:
             chosen[t] = p  # override with the dynamics-augmented CSV
