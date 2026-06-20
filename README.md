@@ -174,7 +174,7 @@ When a **Time Series** folder is loaded, all timepoints are stacked into a singl
 - **Prev / Next buttons** in the side panel
 - **The image_slider spinbox** in the side panel
 
-All four controls are kept in sync — moving any one updates the others. The `Skeleton`, `Extracted Nodes`, and `Dynamic Events` overlay layers are also 4D, so they automatically show only the points belonging to the current timepoint. All editing keybindings (below) and the dynamics event keys (`Shift+1`–`Shift+6`, `d`, `Ctrl+i`) operate on whichever frame is currently displayed.
+All four controls are kept in sync — moving any one updates the others. The `Skeleton`, `Extracted Nodes`, and `Dynamic Events` overlay layers are also 4D, so they automatically show only the points belonging to the current timepoint. All editing keybindings (below) and the dynamics event keys (`Ctrl+1`–`Ctrl+6`, `d`, `Ctrl+i`) operate on whichever frame is currently displayed.
 
 **Requirements:** every frame must have the same `(Z, Y, X)` shape. If shapes differ, the time series will refuse to load and an error is shown.
 
@@ -199,18 +199,18 @@ The following keyboard shortcuts are available for network editing after visuali
 
 Manual correction of automatically detected dynamic events:
 
-Each added event is placed at the **selected Skeleton-layer point** (select exactly one point on the `Skeleton` layer first), and stores a single representative position. The add keys use **Shift+digit** to avoid clashing with napari's bare number-key Points-layer modes (delete/add/select/pan/transform).
+Each added event is placed at the **selected Skeleton-layer point** (select exactly one point on the `Skeleton` layer first), and stores a single representative position. The add keys use **Ctrl+digit** to avoid both napari's bare number-key Points-layer modes (delete/add/select/pan/transform) and napari's rule that Shift is consumed with non-letter keys.
 
 | Key | Function | Requirements |
 |-----|----------|--------------|
 | **Ctrl+i** | Show event information | Select 1 event point on Dynamic Events layer |
 | **d** | Delete selected event | Select 1 event point on Dynamic Events layer |
-| **Shift+1** | Add Tip-Edge Fusion | Select 1 point on Skeleton layer |
-| **Shift+2** | Add Junction Breakage | Select 1 point on Skeleton layer |
-| **Shift+3** | Add Tip-Tip Fusion | Select 1 point on Skeleton layer |
-| **Shift+4** | Add Tip-Tip Fission | Select 1 point on Skeleton layer |
-| **Shift+5** | Add Extrusion | Select 1 point on Skeleton layer |
-| **Shift+6** | Add Retraction | Select 1 point on Skeleton layer |
+| **Ctrl+1** | Add Tip-Edge Fusion | Select 1 point on Skeleton layer |
+| **Ctrl+2** | Add Junction Breakage | Select 1 point on Skeleton layer |
+| **Ctrl+3** | Add Tip-Tip Fusion | Select 1 point on Skeleton layer |
+| **Ctrl+4** | Add Tip-Tip Fission | Select 1 point on Skeleton layer |
+| **Ctrl+5** | Add Extrusion | Select 1 point on Skeleton layer |
+| **Ctrl+6** | Add Retraction | Select 1 point on Skeleton layer |
 
 For detailed event correction workflow, see [EVENT_CORRECTION_GUIDE.md](dynamics/EVENT_CORRECTION_GUIDE.md)
 
