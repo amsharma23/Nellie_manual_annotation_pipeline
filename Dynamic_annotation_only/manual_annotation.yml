@@ -1,0 +1,12 @@
+name: dynamic-annotation
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - napari=0.6.4
+  - pyqt=5.15
+  - numpy=1.26
+  - pandas=2.2
+  - tifffile=2024.6.18
+  - qtpy=2.4
+  - pip
